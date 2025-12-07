@@ -342,6 +342,17 @@ st.markdown("""
         font-size: 0.95rem;
         margin-bottom: 1rem;
     }
+
+    /* CEO Dashboard question header */
+    .question-header {
+        background-color: #1a5f2a;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-top: 24px;
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -698,7 +709,6 @@ def render_ceo_dashboard():
     """Render CEO dashboard showing all employee answers."""
     st.markdown("## All Responses Dashboard")
     st.markdown("Compare answers from all team members for each question.")
-    st.markdown("---")
 
     # Load all answers
     if "all_answers" not in st.session_state:
@@ -711,9 +721,21 @@ def render_ceo_dashboard():
         st.warning("No responses found yet.")
         return
 
-    # Get list of respondents
-    respondents = [a.get("_user_email", a.get("email", "Unknown")) for a in all_answers]
-    st.markdown(f"**{len(respondents)} responses:** {', '.join(respondents)}")
+    # Show respondents with timestamps
+    st.markdown("---")
+    st.markdown(f"### {len(all_answers)} Responses")
+    for answer_data in all_answers:
+        user = answer_data.get("_user_email", answer_data.get("email", "Unknown"))
+        timestamp = answer_data.get("last_updated") or answer_data.get("submitted_at", "")
+        if timestamp:
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                formatted_date = dt.strftime("%b %d, %Y %H:%M")
+            except:
+                formatted_date = timestamp
+        else:
+            formatted_date = "unknown"
+        st.markdown(f"- **{user}** — submitted {formatted_date}")
     st.markdown("---")
 
     # Show each question with all answers
@@ -721,33 +743,18 @@ def render_ceo_dashboard():
         q_id = question["id"]
         q_type = question["type"]
 
-        with st.expander(f"**Q{q_id}:** {question['title']}", expanded=True):
-            if "subtitle" in question:
-                st.markdown(f"*{question['subtitle']}*")
-                st.markdown("")
+        # Question header with colored background
+        st.markdown(f"""<div class="question-header"><strong>Q{q_id}:</strong> {question['title']}</div>""", unsafe_allow_html=True)
 
-            if q_type == "compound":
-                # For compound questions, show sub-questions
-                for sub in question["subquestions"]:
-                    sub_key = sub["key"]
-                    answer_key = f"q{q_id}_{sub_key}"
-                    st.markdown(f"**{sub_key})** {sub['label']}")
+        if "subtitle" in question:
+            st.markdown(f"*{question['subtitle']}*")
 
-                    # Create columns for each respondent
-                    cols = st.columns(len(all_answers))
-                    for idx, answer_data in enumerate(all_answers):
-                        user = answer_data.get("_user_email", "Unknown")
-                        user_short = user.split("@")[0]
-                        answer = answer_data.get("answers", {}).get(answer_key, "")
-                        with cols[idx]:
-                            st.markdown(f"**{user_short}**")
-                            if answer:
-                                st.markdown(f"> {answer}")
-                            else:
-                                st.markdown("_No answer_")
-                    st.markdown("---")
-            else:
-                answer_key = f"q{q_id}"
+        if q_type == "compound":
+            # For compound questions, show sub-questions
+            for sub in question["subquestions"]:
+                sub_key = sub["key"]
+                answer_key = f"q{q_id}_{sub_key}"
+                st.markdown(f"**{sub_key})** {sub['label']}")
 
                 # Create columns for each respondent
                 cols = st.columns(len(all_answers))
@@ -761,6 +768,22 @@ def render_ceo_dashboard():
                             st.markdown(f"> {answer}")
                         else:
                             st.markdown("_No answer_")
+                st.markdown("")
+        else:
+            answer_key = f"q{q_id}"
+
+            # Create columns for each respondent
+            cols = st.columns(len(all_answers))
+            for idx, answer_data in enumerate(all_answers):
+                user = answer_data.get("_user_email", "Unknown")
+                user_short = user.split("@")[0]
+                answer = answer_data.get("answers", {}).get(answer_key, "")
+                with cols[idx]:
+                    st.markdown(f"**{user_short}**")
+                    if answer:
+                        st.markdown(f"> {answer}")
+                    else:
+                        st.markdown("_No answer_")
 
     # Refresh button
     st.markdown("---")
