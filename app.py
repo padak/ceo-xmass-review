@@ -721,7 +721,7 @@ def render_ceo_dashboard():
         q_id = question["id"]
         q_type = question["type"]
 
-        with st.expander(f"**Q{q_id}:** {question['title']}", expanded=False):
+        with st.expander(f"**Q{q_id}:** {question['title']}", expanded=True):
             if "subtitle" in question:
                 st.markdown(f"*{question['subtitle']}*")
                 st.markdown("")
