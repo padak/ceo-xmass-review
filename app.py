@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import json
 import os
 import tempfile
@@ -69,23 +70,27 @@ def load_answers_from_keboola(email: str) -> dict | None:
         return None
 
     target_filename = email_to_filename(email)
-    logger.info(f"Looking for file: {target_filename} with tag: {ANSWERS_TAG}")
+    logger.info(f"Looking for file with tags: {ANSWERS_TAG} + {email}")
 
     try:
-        # List files with our tag
+        # List files with assessment tag first
         files_list = files_client.list(tags=[ANSWERS_TAG], limit=1000)
         logger.info(f"Found {len(files_list)} files with tag {ANSWERS_TAG}")
 
-        # Find file for this user
+        # Filter to find files that ALSO have the user's email tag
         for file_info in files_list:
-            if file_info.get("name") == target_filename:
+            file_tags = file_info.get("tags", [])
+            # Check if file has BOTH required tags
+            tag_names = [t.get("name") if isinstance(t, dict) else t for t in file_tags]
+            if email in tag_names:
                 file_id = file_info.get("id")
-                logger.info(f"Found matching file: {file_id}")
+                file_name = file_info.get("name", target_filename)
+                logger.info(f"Found matching file with both tags: {file_id} ({file_name})")
 
-                # Download to temp file
+                # Download to temp directory
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    local_path = os.path.join(tmp_dir, target_filename)
-                    files_client.download(file_id, local_path)
+                    files_client.download(file_id, tmp_dir)
+                    local_path = os.path.join(tmp_dir, file_name)
 
                     # Read and parse JSON
                     with open(local_path, "r") as f:
@@ -101,6 +106,33 @@ def load_answers_from_keboola(email: str) -> dict | None:
         return None
 
 
+def delete_existing_file_from_keboola(email: str) -> bool:
+    """Delete existing answers file for a user from Keboola Storage."""
+    files_client = get_keboola_files_client()
+    if not files_client:
+        return False
+
+    try:
+        # List files with assessment tag
+        files_list = files_client.list(tags=[ANSWERS_TAG], limit=1000)
+
+        # Find and delete only files that ALSO have the user's email tag
+        for file_info in files_list:
+            file_tags = file_info.get("tags", [])
+            tag_names = [t.get("name") if isinstance(t, dict) else t for t in file_tags]
+            if email in tag_names:
+                file_id = file_info.get("id")
+                file_name = file_info.get("name")
+                logger.info(f"Deleting old file: {file_id} ({file_name})")
+                files_client.delete(file_id)
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Error deleting old file from Keboola: {e}")
+        return False
+
+
 def save_answers_to_keboola(email: str, answers: dict) -> bool:
     """Save answers to Keboola Storage as a file with tag."""
     files_client = get_keboola_files_client()
@@ -112,6 +144,9 @@ def save_answers_to_keboola(email: str, answers: dict) -> bool:
     filename = email_to_filename(email)
 
     try:
+        # First, delete any existing file for this user
+        delete_existing_file_from_keboola(email)
+
         # Create temp file with answers
         with tempfile.TemporaryDirectory() as tmp_dir:
             local_path = os.path.join(tmp_dir, filename)
@@ -128,10 +163,10 @@ def save_answers_to_keboola(email: str, answers: dict) -> bool:
             with open(local_path, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            # Upload to Keboola with tag
+            # Upload to Keboola with tags (assessment tag + user email for easy lookup)
             result = files_client.upload_file(
                 file_path=local_path,
-                tags=[ANSWERS_TAG],
+                tags=[ANSWERS_TAG, email],
                 is_permanent=True,
                 is_public=False
             )
@@ -202,6 +237,9 @@ st.set_page_config(
 # Custom CSS for better styling
 st.markdown("""
 <style>
+    /* Material Icons */
+    @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -249,40 +287,6 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 </style>
-<script>
-    // Auto-focus the first Streamlit textarea/input on page load
-    (function() {
-        function focusFirstInput() {
-            // Try multiple document contexts
-            const docs = [document, window.parent.document];
-            for (const doc of docs) {
-                try {
-                    // Look for Streamlit's textarea (id starts with text_area_) or text input
-                    const textarea = doc.querySelector('textarea[id^="text_area_"]');
-                    if (textarea) {
-                        textarea.focus();
-                        return true;
-                    }
-                    // Fallback to any visible textarea
-                    const anyTextarea = doc.querySelector('textarea[aria-label="Your answer"]');
-                    if (anyTextarea) {
-                        anyTextarea.focus();
-                        return true;
-                    }
-                } catch(e) {}
-            }
-            return false;
-        }
-
-        // Retry with increasing delays
-        const delays = [50, 100, 200, 300, 500, 700, 1000];
-        delays.forEach((delay, i) => {
-            setTimeout(() => {
-                focusFirstInput();
-            }, delay);
-        });
-    })();
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -379,18 +383,34 @@ def init_session_state(authenticated_user: str | None):
     if "submitted" not in st.session_state:
         st.session_state.submitted = False
 
+    if "show_review" not in st.session_state:
+        st.session_state.show_review = False
+
     if "answers_loaded" not in st.session_state:
         st.session_state.answers_loaded = False
 
-    # Load existing answers from Keboola (only once per session)
+    if "existing_data" not in st.session_state:
+        st.session_state.existing_data = None
+
+    if "user_chose_action" not in st.session_state:
+        st.session_state.user_chose_action = False
+
+    if "editing_from_review" not in st.session_state:
+        st.session_state.editing_from_review = False
+
+    # Check for existing answers from Keboola (only once per session)
     if not st.session_state.answers_loaded and authenticated_user:
+        logger.info(f"Checking for existing answers for {authenticated_user}...")
         existing_data = load_answers_from_keboola(authenticated_user)
+        logger.info(f"Result: {existing_data}")
         if existing_data and "answers" in existing_data:
-            st.session_state.answers = existing_data["answers"]
+            st.session_state.existing_data = existing_data
             st.session_state.has_existing_answers = True
-            logger.info(f"Loaded existing answers for {authenticated_user}")
+            logger.info(f"Found existing answers for {authenticated_user}")
         else:
             st.session_state.has_existing_answers = False
+            st.session_state.user_chose_action = True  # No choice needed
+            logger.info(f"No existing answers found for {authenticated_user}")
         st.session_state.answers_loaded = True
 
 
@@ -499,21 +519,89 @@ def render_navigation(authenticated_user):
     col1, col2, col3 = st.columns([1, 1, 1])
 
     current = st.session_state.current_step
+    editing_from_review = st.session_state.get("editing_from_review", False)
 
     with col1:
-        if current > 0:
+        if editing_from_review:
+            # Show "Back to Review" when editing from review page
+            if st.button("← Back to Review", use_container_width=True):
+                st.session_state.show_review = True
+                st.session_state.editing_from_review = False
+                st.rerun()
+        elif current > 0:
             if st.button("← Previous", use_container_width=True):
                 st.session_state.current_step -= 1
                 st.rerun()
 
     with col3:
-        if current < TOTAL_QUESTIONS - 1:
+        if editing_from_review:
+            # When editing from review, primary action is to go back to review
+            if st.button("Save & Back to Review →", use_container_width=True, type="primary"):
+                st.session_state.show_review = True
+                st.session_state.editing_from_review = False
+                st.rerun()
+        elif current < TOTAL_QUESTIONS - 1:
             if st.button("Next →", use_container_width=True, type="primary"):
                 st.session_state.current_step += 1
                 st.rerun()
         else:
-            if st.button("Submit ✓", use_container_width=True, type="primary"):
-                submit_assessment(authenticated_user)
+            # Last question - go to review page
+            if st.button("Review Answers →", use_container_width=True, type="primary"):
+                st.session_state.show_review = True
+                st.rerun()
+
+
+def render_review_page(authenticated_user):
+    """Render review page with all answers before final submit."""
+    st.markdown("## Review Your Answers")
+    st.markdown("Please review your answers before submitting. Click on any question to edit.")
+    st.markdown("---")
+
+    # Show all answers
+    for i, question in enumerate(QUESTIONS):
+        q_id = question["id"]
+        q_type = question["type"]
+
+        with st.expander(f"**Q{q_id}:** {question['title']}", expanded=True):
+            if q_type == "compound":
+                for sub in question["subquestions"]:
+                    sub_key = sub["key"]
+                    answer_key = get_answer_key(q_id, sub_key)
+                    answer = st.session_state.answers.get(answer_key, "")
+                    st.markdown(f"**{sub_key})** {sub['label']}")
+                    if answer:
+                        st.markdown(f"> {answer}")
+                    else:
+                        st.markdown("_No answer provided_")
+            else:
+                answer_key = get_answer_key(q_id)
+                answer = st.session_state.answers.get(answer_key, "")
+                if answer:
+                    st.markdown(f"> {answer}")
+                else:
+                    st.markdown("_No answer provided_")
+
+            # Edit button for this question
+            if st.button(f"Edit Question {q_id}", key=f"edit_{q_id}"):
+                st.session_state.current_step = i
+                st.session_state.show_review = False
+                st.session_state.editing_from_review = True
+                st.rerun()
+
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Navigation buttons
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col1:
+        if st.button("← Back to Questions", use_container_width=True):
+            st.session_state.show_review = False
+            st.rerun()
+
+    with col3:
+        if st.button("Submit ✓", use_container_width=True, type="primary"):
+            submit_assessment(authenticated_user)
 
 
 def submit_assessment(authenticated_user):
@@ -543,6 +631,49 @@ def render_thank_you():
     st.balloons()
 
 
+def render_existing_answers_choice(authenticated_user):
+    """Render dialog to choose whether to load existing answers or start fresh."""
+    existing_data = st.session_state.existing_data
+
+    # Parse timestamp
+    timestamp_str = existing_data.get("last_updated") or existing_data.get("submitted_at", "")
+    if timestamp_str:
+        try:
+            dt = datetime.fromisoformat(timestamp_str)
+            formatted_date = dt.strftime("%B %d, %Y at %H:%M")
+        except:
+            formatted_date = timestamp_str
+    else:
+        formatted_date = "unknown date"
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style='background-color: #fff3cd; padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem; border: 1px solid #ffc107;'>
+        <h3 style='margin-top: 0;'>📋 Previous Answers Found</h3>
+        <p>Hi <strong>{authenticated_user}</strong>!</p>
+        <p>We found your previous assessment from <strong>{formatted_date}</strong>.</p>
+        <p>Would you like to continue editing your previous answers or start fresh?</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("📝 Load & Edit Previous Answers", use_container_width=True, type="primary"):
+            # Load the existing answers
+            st.session_state.answers = existing_data.get("answers", {})
+            st.session_state.user_chose_action = True
+            st.rerun()
+
+    with col2:
+        if st.button("🆕 Start Fresh", use_container_width=True):
+            # Start with empty answers
+            st.session_state.answers = {}
+            st.session_state.user_chose_action = True
+            st.rerun()
+
+
 def main():
     # Get authenticated user from Keboola OIDC
     authenticated_user = get_authenticated_user()
@@ -550,8 +681,13 @@ def main():
     # Initialize session state (and load existing answers)
     init_session_state(authenticated_user)
 
-    # Header
-    st.markdown("# 📋 CEO Assessment")
+    # Header with Material Icon
+    st.markdown("""
+    <h1 style="text-align: center; display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <span class="material-icons-outlined" style="font-size: 42px; color: #4CAF50;">assignment</span>
+        CEO Assessment
+    </h1>
+    """, unsafe_allow_html=True)
 
     # Debug mode - show headers and Keboola config (use query param ?debug=1)
     if st.query_params.get("debug"):
@@ -567,19 +703,25 @@ def main():
         render_thank_you()
         return
 
+    # Check if user needs to choose what to do with existing answers
+    if st.session_state.has_existing_answers and not st.session_state.user_chose_action:
+        render_existing_answers_choice(authenticated_user)
+        return
+
+    # Check if showing review page
+    if st.session_state.show_review:
+        render_review_page(authenticated_user)
+        return
+
     # Welcome message on first question
     if st.session_state.current_step == 0:
         user_display = authenticated_user or "there"
-        existing_note = ""
-        if st.session_state.get("has_existing_answers"):
-            existing_note = "<br><em>📝 We found your previous answers - feel free to update them!</em>"
 
         st.markdown(f"""
         <div style='background-color: #e8f5e9; padding: 1rem; border-radius: 10px; margin-bottom: 2rem;'>
             <strong>Hi {user_display}!</strong><br><br>
             Thank you for taking the time to share your thoughts.
             Your honest feedback helps me understand how we can work better together.
-            {existing_note}
         </div>
         """, unsafe_allow_html=True)
 
@@ -591,6 +733,31 @@ def main():
     # Current question
     current_question = QUESTIONS[st.session_state.current_step]
     render_question(current_question)
+
+    # Auto-focus on textarea after navigation using iframe component
+    focus_js = f"""
+    <script>
+        (function() {{
+            var step = {st.session_state.current_step};
+            function focusTextarea() {{
+                try {{
+                    var doc = window.parent.document;
+                    var textarea = doc.querySelector('textarea[aria-label="Your answer"]');
+                    if (textarea) {{
+                        textarea.focus();
+                        return true;
+                    }}
+                }} catch(e) {{}}
+                return false;
+            }}
+            // Retry with delays to ensure DOM is ready
+            [50, 100, 200, 400, 600].forEach(function(delay) {{
+                setTimeout(focusTextarea, delay);
+            }});
+        }})();
+    </script>
+    """
+    components.html(focus_js, height=0)
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
