@@ -24,6 +24,9 @@ KBC_TOKEN = os.environ.get("KBC_TOKEN") or os.environ.get("KBC_API_TOKEN", "")
 # Tag for CEO Assessment answers
 ANSWERS_TAG = "CEO_Assessment_Answers"
 
+# CEO email for admin view (shows all responses)
+CEO_EMAIL = os.environ.get("CEO_EMAIL", "")
+
 
 def get_keboola_files_client():
     """Get Keboola Storage Files client."""
@@ -104,6 +107,59 @@ def load_answers_from_keboola(email: str) -> dict | None:
     except Exception as e:
         logger.error(f"Error loading answers from Keboola: {e}")
         return None
+
+
+def load_all_answers_from_keboola() -> list[dict]:
+    """Load all answers from Keboola Storage for CEO dashboard."""
+    files_client = get_keboola_files_client()
+    if not files_client:
+        return []
+
+    logger.info("Loading all assessment answers for CEO dashboard")
+    all_answers = []
+
+    try:
+        # List all files with assessment tag
+        files_list = files_client.list(tags=[ANSWERS_TAG], limit=1000)
+        logger.info(f"Found {len(files_list)} files with tag {ANSWERS_TAG}")
+
+        for file_info in files_list:
+            file_id = file_info.get("id")
+            file_name = file_info.get("name", "unknown.json")
+
+            # Extract email from tags (second tag should be the email)
+            file_tags = file_info.get("tags", [])
+            tag_names = [t.get("name") if isinstance(t, dict) else t for t in file_tags]
+            # Find email tag (not the ANSWERS_TAG)
+            user_email = None
+            for tag in tag_names:
+                if tag != ANSWERS_TAG and "@" in tag:
+                    user_email = tag
+                    break
+
+            if not user_email:
+                continue
+
+            try:
+                # Download to temp directory
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    files_client.download(file_id, tmp_dir)
+                    local_path = os.path.join(tmp_dir, file_name)
+
+                    with open(local_path, "r") as f:
+                        data = json.load(f)
+                        data["_user_email"] = user_email
+                        all_answers.append(data)
+                        logger.info(f"Loaded answers from {user_email}")
+            except Exception as e:
+                logger.error(f"Error loading file {file_id}: {e}")
+                continue
+
+        return all_answers
+
+    except Exception as e:
+        logger.error(f"Error loading all answers from Keboola: {e}")
+        return []
 
 
 def delete_existing_file_from_keboola(email: str) -> bool:
@@ -631,6 +687,88 @@ def render_thank_you():
     st.balloons()
 
 
+def is_ceo(email: str) -> bool:
+    """Check if the user is the CEO."""
+    if not email or not CEO_EMAIL:
+        return False
+    return email.lower() == CEO_EMAIL.lower()
+
+
+def render_ceo_dashboard():
+    """Render CEO dashboard showing all employee answers."""
+    st.markdown("## All Responses Dashboard")
+    st.markdown("Compare answers from all team members for each question.")
+    st.markdown("---")
+
+    # Load all answers
+    if "all_answers" not in st.session_state:
+        with st.spinner("Loading all responses..."):
+            st.session_state.all_answers = load_all_answers_from_keboola()
+
+    all_answers = st.session_state.all_answers
+
+    if not all_answers:
+        st.warning("No responses found yet.")
+        return
+
+    # Get list of respondents
+    respondents = [a.get("_user_email", a.get("email", "Unknown")) for a in all_answers]
+    st.markdown(f"**{len(respondents)} responses:** {', '.join(respondents)}")
+    st.markdown("---")
+
+    # Show each question with all answers
+    for question in QUESTIONS:
+        q_id = question["id"]
+        q_type = question["type"]
+
+        with st.expander(f"**Q{q_id}:** {question['title']}", expanded=False):
+            if "subtitle" in question:
+                st.markdown(f"*{question['subtitle']}*")
+                st.markdown("")
+
+            if q_type == "compound":
+                # For compound questions, show sub-questions
+                for sub in question["subquestions"]:
+                    sub_key = sub["key"]
+                    answer_key = f"q{q_id}_{sub_key}"
+                    st.markdown(f"**{sub_key})** {sub['label']}")
+
+                    # Create columns for each respondent
+                    cols = st.columns(len(all_answers))
+                    for idx, answer_data in enumerate(all_answers):
+                        user = answer_data.get("_user_email", "Unknown")
+                        user_short = user.split("@")[0]
+                        answer = answer_data.get("answers", {}).get(answer_key, "")
+                        with cols[idx]:
+                            st.markdown(f"**{user_short}**")
+                            if answer:
+                                st.markdown(f"> {answer}")
+                            else:
+                                st.markdown("_No answer_")
+                    st.markdown("---")
+            else:
+                answer_key = f"q{q_id}"
+
+                # Create columns for each respondent
+                cols = st.columns(len(all_answers))
+                for idx, answer_data in enumerate(all_answers):
+                    user = answer_data.get("_user_email", "Unknown")
+                    user_short = user.split("@")[0]
+                    answer = answer_data.get("answers", {}).get(answer_key, "")
+                    with cols[idx]:
+                        st.markdown(f"**{user_short}**")
+                        if answer:
+                            st.markdown(f"> {answer}")
+                        else:
+                            st.markdown("_No answer_")
+
+    # Refresh button
+    st.markdown("---")
+    if st.button("🔄 Refresh Data", use_container_width=True):
+        del st.session_state.all_answers
+        st.rerun()
+
+
 def render_existing_answers_choice(authenticated_user):
     """Render dialog to choose whether to load existing answers or start fresh."""
     existing_data = st.session_state.existing_data
@@ -693,10 +831,17 @@ def main():
     if st.query_params.get("debug"):
         with st.expander("🔧 Debug Info", expanded=True):
             st.write(f"**Authenticated user:** {authenticated_user}")
+            st.write(f"**Is CEO:** {is_ceo(authenticated_user)}")
+            st.write(f"**CEO_EMAIL:** {CEO_EMAIL or 'Not set'}")
             st.write(f"**KBC_URL:** {KBC_URL}")
             st.write(f"**KBC_TOKEN:** {'***' + KBC_TOKEN[-4:] if KBC_TOKEN else 'Not set'}")
             st.write(f"**Has existing answers:** {st.session_state.get('has_existing_answers', False)}")
             st.json(get_debug_headers())
+
+    # CEO gets the dashboard view instead of the questionnaire
+    if is_ceo(authenticated_user):
+        render_ceo_dashboard()
+        return
 
     # Check if already submitted
     if st.session_state.submitted:
