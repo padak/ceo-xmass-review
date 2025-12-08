@@ -60,8 +60,9 @@ streamlit run app.py --server.port 8501
 ```bash
 KBC_URL=https://connection.keboola.com  # Keboola API URL
 KBC_TOKEN=xxx                            # Keboola Storage API token
-CEO_EMAIL=ceo@company.com               # Email for admin dashboard access
+SURVEY_EVALUATORS=jan@company.com,petra@company.com  # Comma-separated emails for dashboard access
 QUESTIONS_CONFIG_FILE=questions.yaml     # Config file path (optional)
+AGGRID_LICENSE_KEY=xxx                   # AG Grid Enterprise license (enables charts, pivoting, Excel export)
 ```
 
 ### Keboola Integration
@@ -70,6 +71,23 @@ When running as a Keboola Data App:
 - User email comes from `X-Kbc-User-Email` header (OIDC)
 - Answers saved to Keboola Storage Files (not tables)
 - CEO sees dashboard with all responses instead of questionnaire
+
+### Dashboard & Visualizations
+
+The evaluator dashboard has three tabs:
+- **Summary** - Smart visualizations per question type (Altair charts)
+- **All Data** - Interactive AgGrid table with filtering, grouping, export
+- **Respondents** - List of all respondents with timestamps
+
+**Visualization Config** (`config/visualizations.yaml`):
+- Maps each of 16 question types to optimal chart type
+- Configures colors, thresholds, aggregation methods
+- Special handling for NPS (promoters/passives/detractors calculation)
+
+**AgGrid Enterprise** (requires `AGGRID_LICENSE_KEY`):
+- Use `enable_enterprise_modules="enterprise+AgCharts"` to enable integrated charts
+- Right-click on selected cells → "Chart Range..." for ad-hoc charting
+- Row grouping, pivoting, Excel export
 
 ## Configuration Schema
 

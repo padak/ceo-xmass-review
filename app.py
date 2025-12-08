@@ -11,6 +11,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 import yaml
 from streamlit_sortables import sort_items
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
+import pandas as pd
+import altair as alt
 
 # Load environment variables from .env file (for local development)
 load_dotenv()
@@ -26,8 +29,30 @@ KEBOOLA_USER_HEADER = "X-Kbc-User-Email"
 KBC_URL = os.environ.get("KBC_URL") or os.environ.get("KBC_API_URL", "https://connection.keboola.com")
 KBC_TOKEN = os.environ.get("KBC_TOKEN") or os.environ.get("KBC_API_TOKEN", "")
 
-# CEO email for admin view (shows all responses)
-CEO_EMAIL = os.environ.get("CEO_EMAIL", "")
+# Evaluator emails for admin view (shows all responses)
+# Comma-separated list of emails, e.g., "jan@company.com,petra@company.com"
+SURVEY_EVALUATORS_RAW = os.environ.get("SURVEY_EVALUATORS", "")
+SURVEY_EVALUATORS = [
+    email.strip().lower()
+    for email in SURVEY_EVALUATORS_RAW.split(",")
+    if email.strip()
+]
+
+# AgGrid Enterprise license key (from Keboola)
+AGGRID_LICENSE_KEY = os.environ.get("AGGRID_LICENSE_KEY", "")
+
+# Load visualization config
+VIZ_CONFIG_PATH = Path(__file__).parent / "config" / "visualizations.yaml"
+VIZ_CONFIG = {}
+if VIZ_CONFIG_PATH.exists():
+    with open(VIZ_CONFIG_PATH, "r") as f:
+        VIZ_CONFIG = yaml.safe_load(f) or {}
+    logger.info(f"Loaded visualization config from {VIZ_CONFIG_PATH}")
+
+
+def get_viz_config(question_type: str) -> dict:
+    """Get visualization config for a question type."""
+    return VIZ_CONFIG.get("question_types", {}).get(question_type, {})
 
 
 def get_answers_tag() -> str:
@@ -281,8 +306,12 @@ def load_answers_from_keboola(email: str) -> dict | None:
         return None
 
 
-def load_all_answers_from_keboola() -> list[dict]:
-    """Load all answers from Keboola Storage for CEO dashboard."""
+def load_all_answers_from_keboola(progress_callback=None) -> list[dict]:
+    """Load all answers from Keboola Storage for CEO dashboard.
+
+    Args:
+        progress_callback: Optional callback(current, total, email) for progress updates
+    """
     files_client = get_keboola_files_client()
     if not files_client:
         return []
@@ -294,9 +323,10 @@ def load_all_answers_from_keboola() -> list[dict]:
     try:
         # List all files with assessment tag
         files_list = files_client.list(tags=[answers_tag], limit=1000)
-        logger.info(f"Found {len(files_list)} files with tag {answers_tag}")
+        total_files = len(files_list)
+        logger.info(f"Found {total_files} files with tag {answers_tag}")
 
-        for file_info in files_list:
+        for idx, file_info in enumerate(files_list):
             file_id = file_info.get("id")
             file_name = file_info.get("name", "unknown.json")
 
@@ -324,6 +354,10 @@ def load_all_answers_from_keboola() -> list[dict]:
                         data["_user_email"] = user_email
                         all_answers.append(data)
                         logger.info(f"Loaded answers from {user_email}")
+
+                        # Report progress
+                        if progress_callback:
+                            progress_callback(idx + 1, total_files, user_email)
             except Exception as e:
                 logger.error(f"Error loading file {file_id}: {e}")
                 continue
@@ -474,17 +508,17 @@ def generate_csv_export(all_answers: list[dict]) -> str:
                 answer_key = f"q{q_id}_{sub_key}"
                 row = [f"  {sub_key}) {sub['label']}"]
                 for answer_data in all_answers:
-                    answer = answer_data.get("answers", {}).get(answer_key, "")
+                    answer = answer_data.get("answers", {}).get(answer_key) or ""
                     # Escape quotes and newlines for CSV
-                    answer = answer.replace('"', '""').replace('\n', ' ')
+                    answer = str(answer).replace('"', '""').replace('\n', ' ')
                     row.append(answer)
                 output.write(",".join(f'"{cell}"' for cell in row) + "\n")
         else:
             answer_key = f"q{q_id}"
             row = [f"Q{q_id}: {question['title']}"]
             for answer_data in all_answers:
-                answer = answer_data.get("answers", {}).get(answer_key, "")
-                answer = answer.replace('"', '""').replace('\n', ' ')
+                answer = answer_data.get("answers", {}).get(answer_key) or ""
+                answer = str(answer).replace('"', '""').replace('\n', ' ')
                 row.append(answer)
             output.write(",".join(f'"{cell}"' for cell in row) + "\n")
 
@@ -522,7 +556,7 @@ def get_debug_headers():
 st.set_page_config(
     page_title="Questionnaire",
     page_icon="📋",
-    layout="centered"
+    layout="wide"
 )
 
 # Custom CSS for better styling
@@ -1954,22 +1988,187 @@ def render_question_body(question):
         st.session_state.answers[answer_key] = json.dumps(sorted_items)
 
 
-def is_ceo(email: str) -> bool:
-    """Check if the user is the CEO."""
-    if not email or not CEO_EMAIL:
+def is_evaluator(email: str) -> bool:
+    """Check if the user is an evaluator (can view all responses)."""
+    if not email or not SURVEY_EVALUATORS:
         return False
-    return email.lower() == CEO_EMAIL.lower()
+    return email.lower() in SURVEY_EVALUATORS
+
+
+def load_answers_for_dashboard() -> list[dict]:
+    """Load answers from local file (debug) or Keboola."""
+    # Check for local debug file first
+    local_file = Path(__file__).parent / "data" / "all_answers.json"
+    if local_file.exists():
+        with open(local_file, "r") as f:
+            answers = json.load(f)
+            logger.info(f"Loaded {len(answers)} answers from local file: {local_file}")
+            return answers
+
+    # Fall back to Keboola
+    return load_all_answers_from_keboola()
+
+
+def answers_to_dataframe(all_answers: list[dict]) -> pd.DataFrame:
+    """Convert answers to a pandas DataFrame for AgGrid display."""
+    rows = []
+    for answer_data in all_answers:
+        email = answer_data.get("_user_email", answer_data.get("email", "Unknown"))
+        row = {
+            "Respondent": email.split("@")[0],
+            "Email": email,
+            "Submitted": answer_data.get("submitted_at", "")[:16].replace("T", " ") if answer_data.get("submitted_at") else "",
+        }
+
+        # Add each question's answer
+        for question in QUESTIONS:
+            q_id = question["id"]
+            q_title = question["title"][:40] + "..." if len(question["title"]) > 40 else question["title"]
+            col_name = f"Q{q_id}: {q_title}"
+
+            if question["type"] == "compound":
+                # For compound, concatenate sub-answers
+                parts = []
+                for sub in question.get("subquestions", []):
+                    sub_key = sub["key"]
+                    answer_key = f"q{q_id}_{sub_key}"
+                    ans = answer_data.get("answers", {}).get(answer_key)
+                    if ans:
+                        parts.append(f"{sub_key}) {ans}")
+                row[col_name] = " | ".join(parts) if parts else ""
+            else:
+                answer_key = f"q{q_id}"
+                ans = answer_data.get("answers", {}).get(answer_key)
+                # Convert all values to string to avoid mixed types (PyArrow issue)
+                row[col_name] = str(ans) if ans is not None else ""
+
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    # Ensure all columns are strings to avoid Arrow serialization issues
+    for col in df.columns:
+        df[col] = df[col].astype(str)
+    return df
+
+
+def render_aggrid_table(df: pd.DataFrame):
+    """Render AgGrid table with Enterprise features."""
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    # Check if Enterprise license is available
+    has_enterprise = bool(AGGRID_LICENSE_KEY)
+
+    # Configure default column properties
+    gb.configure_default_column(
+        editable=False,
+        groupable=True,
+        sortable=True,
+        filterable=True,
+        resizable=True,
+        wrapText=True,
+        autoHeight=True,
+        # Enterprise: enable charting from column menu
+        chartDataType="category" if has_enterprise else None,
+    )
+
+    # Configure specific columns
+    gb.configure_column("Respondent", pinned="left", width=130, rowGroup=False)
+    gb.configure_column("Email", hide=True)  # Hidden but available for export
+    gb.configure_column("Submitted", width=140)
+
+    # Enable sidebar with columns and filters (Enterprise feature)
+    gb.configure_side_bar(filters_panel=True, columns_panel=True)
+
+    # Grid options - different for Enterprise vs Community
+    grid_opts = {
+        "animateRows": True,
+        "enableCellTextSelection": True,
+        "ensureDomOrder": True,
+        "rowHeight": 50,
+        "headerHeight": 40,
+        "suppressMenuHide": True,
+    }
+
+    if has_enterprise:
+        # Enterprise-specific options
+        grid_opts.update({
+            "enableRangeSelection": True,
+            "enableCharts": True,
+            "chartThemeOverrides": {
+                "common": {
+                    "title": {"enabled": True},
+                    "legend": {"position": "bottom"},
+                }
+            },
+            # Allow creating charts from context menu
+            "enableRangeHandle": True,
+            # Explicitly enable chart menu items in context menu
+            "suppressContextMenu": False,
+            "allowContextMenuWithControlKey": True,
+            # Row grouping
+            "rowGroupPanelShow": "always",  # Show grouping panel at top
+            "groupDefaultExpanded": 1,
+            # Status bar with aggregations
+            "statusBar": {
+                "statusPanels": [
+                    {"statusPanel": "agTotalAndFilteredRowCountComponent"},
+                    {"statusPanel": "agSelectedRowCountComponent"},
+                    {"statusPanel": "agAggregationComponent"},
+                ]
+            },
+        })
+
+    gb.configure_grid_options(**grid_opts)
+
+    # Configure selection
+    gb.configure_selection(
+        selection_mode="multiple",
+        use_checkbox=True,
+        rowMultiSelectWithClick=True,
+    )
+
+    grid_options = gb.build()
+
+    # Render AgGrid
+    # Note: "enterprise+AgCharts" enables integrated charting (Chart Range context menu)
+    grid_response = AgGrid(
+        df,
+        gridOptions=grid_options,
+        height=700,
+        theme="streamlit",
+        enable_enterprise_modules="enterprise+AgCharts" if has_enterprise else False,
+        license_key=AGGRID_LICENSE_KEY if has_enterprise else None,
+        fit_columns_on_grid_load=False,
+        allow_unsafe_jscode=True,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+    )
+
+    return grid_response
 
 
 def render_ceo_dashboard():
     """Render CEO dashboard showing all employee answers."""
     st.markdown("## All Responses Dashboard")
-    st.markdown("Compare answers from all team members for each question.")
 
-    # Load all answers
+    # Load all answers with progress indicator
     if "all_answers" not in st.session_state:
-        with st.spinner("Loading all responses..."):
-            st.session_state.all_answers = load_all_answers_from_keboola()
+        # Check if local file exists (instant load)
+        local_file = Path(__file__).parent / "data" / "all_answers.json"
+        if local_file.exists():
+            st.session_state.all_answers = load_answers_for_dashboard()
+            st.toast(f"Loaded from local cache", icon="📁")
+        else:
+            progress_container = st.empty()
+            status_text = st.empty()
+
+            def update_progress(current, total, email):
+                progress_container.progress(current / total, text=f"Loading responses: {current}/{total}")
+                status_text.text(f"Loaded: {email}")
+
+            st.session_state.all_answers = load_all_answers_from_keboola(progress_callback=update_progress)
+
+            progress_container.empty()
+            status_text.empty()
 
     all_answers = st.session_state.all_answers
 
@@ -1977,93 +2176,575 @@ def render_ceo_dashboard():
         st.warning("No responses found yet.")
         return
 
-    # Export section
-    st.markdown("---")
-
-    col1, col2 = st.columns([1, 1])
-
+    # Header with count and actions
+    col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
-        # CSV download
+        st.markdown(f"**{len(all_answers)} responses**")
+    with col2:
         csv_data = generate_csv_export(all_answers)
         st.download_button(
             label="Download CSV",
             data=csv_data,
-            file_name=f"ceo_assessment_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            file_name=f"survey_export_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv",
             use_container_width=True,
-            type="primary"
         )
-
-    with col2:
-        # Refresh button
-        if st.button("Refresh Data", use_container_width=True):
+    with col3:
+        if st.button("Refresh", use_container_width=True):
             if "all_answers" in st.session_state:
                 del st.session_state.all_answers
             st.rerun()
 
-    # Show respondents with timestamps
-    st.markdown("---")
-    st.markdown(f"### {len(all_answers)} Responses")
-    for answer_data in all_answers:
-        user = answer_data.get("_user_email", answer_data.get("email", "Unknown"))
-        timestamp = answer_data.get("last_updated") or answer_data.get("submitted_at", "")
-        if timestamp:
-            try:
-                dt = datetime.fromisoformat(timestamp)
-                formatted_date = dt.strftime("%b %d, %Y %H:%M")
-            except:
-                formatted_date = timestamp
-        else:
-            formatted_date = "unknown"
-        st.markdown(f"- **{user}** — submitted {formatted_date}")
-    st.markdown("---")
+    # Tabs for different views
+    tab_summary, tab_table, tab_respondents = st.tabs(["Summary", "All Data (Table)", "Respondents"])
 
-    # Show each question with all answers
-    for question in QUESTIONS:
-        q_id = question["id"]
-        q_type = question["type"]
-
-        # Question header with colored background
-        st.markdown(f"""<div class="question-header"><strong>Q{q_id}:</strong> {question['title']}</div>""", unsafe_allow_html=True)
-
-        if "subtitle" in question:
-            st.markdown(f"*{question['subtitle']}*")
-
-        if q_type == "compound":
-            # For compound questions, show sub-questions
-            for sub in question["subquestions"]:
-                sub_key = sub["key"]
-                answer_key = f"q{q_id}_{sub_key}"
-                st.markdown(f"**{sub_key})** {sub['label']}")
-
-                # Create columns for each respondent
-                cols = st.columns(len(all_answers))
-                for idx, answer_data in enumerate(all_answers):
-                    user = answer_data.get("_user_email", "Unknown")
-                    user_short = user.split("@")[0]
-                    answer = answer_data.get("answers", {}).get(answer_key, "")
-                    with cols[idx]:
-                        st.markdown(f"**{user_short}**")
-                        if answer:
-                            st.markdown(f"> {answer}")
-                        else:
-                            st.markdown("_No answer_")
-                st.markdown("")
-        else:
+    with tab_summary:
+        # Show each question with aggregated answers
+        for question in QUESTIONS:
+            q_id = question["id"]
+            q_type = question["type"]
             answer_key = f"q{q_id}"
 
-            # Create columns for each respondent
-            cols = st.columns(len(all_answers))
-            for idx, answer_data in enumerate(all_answers):
-                user = answer_data.get("_user_email", "Unknown")
-                user_short = user.split("@")[0]
-                answer = answer_data.get("answers", {}).get(answer_key, "")
-                with cols[idx]:
-                    st.markdown(f"**{user_short}**")
-                    if answer:
-                        st.markdown(f"> {answer}")
-                    else:
-                        st.markdown("_No answer_")
+            # Collect all answers for this question
+            answers = []
+            for answer_data in all_answers:
+                ans = answer_data.get("answers", {}).get(answer_key)
+                if ans is not None and ans != "":
+                    answers.append(ans)
+
+            # Question header
+            with st.container():
+                st.markdown(f"### Q{q_id}: {question['title']}")
+                if "subtitle" in question:
+                    st.caption(question['subtitle'])
+
+                response_rate = len(answers) / len(all_answers) * 100
+                st.caption(f"{len(answers)}/{len(all_answers)} responses ({response_rate:.0f}%)")
+
+                # Render based on question type using smart visualization config
+                render_smart_results(question, answers, all_answers)
+
+                st.markdown("---")
+
+    with tab_table:
+        st.markdown("### Interactive Data Table")
+
+        # License indicator
+        has_enterprise = bool(AGGRID_LICENSE_KEY)
+        if has_enterprise:
+            st.success("AgGrid Enterprise license active - charts, pivoting, and advanced features enabled!")
+            st.caption("**Right-click** on cells to create charts. Use sidebar for filters. Drag column headers to group.")
+        else:
+            st.warning("AgGrid Community mode - set `AGGRID_LICENSE_KEY` env var to enable Enterprise features (charts, pivot, Excel export)")
+            st.caption("Use sidebar for filters and column selection. Select rows with checkboxes.")
+
+        # Convert to DataFrame
+        df = answers_to_dataframe(all_answers)
+
+        # Render AgGrid
+        grid_response = render_aggrid_table(df)
+
+        # Show selected rows info
+        selected = grid_response.get("selected_rows")
+        if selected is not None and len(selected) > 0:
+            st.info(f"Selected {len(selected)} row(s)")
+
+    with tab_respondents:
+        st.markdown("### All Respondents")
+        for answer_data in all_answers:
+            user = answer_data.get("_user_email", answer_data.get("email", "Unknown"))
+            timestamp = answer_data.get("last_updated") or answer_data.get("submitted_at", "")
+            if timestamp:
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                    formatted_date = dt.strftime("%b %d, %Y %H:%M")
+                except:
+                    formatted_date = timestamp
+            else:
+                formatted_date = "unknown"
+            st.markdown(f"- **{user}** - submitted {formatted_date}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SMART VISUALIZATION RENDERERS
+# Uses config/visualizations.yaml to determine best chart for each question type
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def render_smart_results(question: dict, answers: list, all_answers: list):
+    """Smart renderer that picks visualization based on question type and config."""
+    from collections import Counter
+
+    q_type = question.get("type", "text_input")
+    viz_config = get_viz_config(q_type)
+
+    # Check for low response threshold
+    special_config = VIZ_CONFIG.get("special", {})
+    low_threshold = special_config.get("low_response_threshold", 3)
+
+    if len(answers) < low_threshold:
+        # Too few responses - just show as list
+        render_text_list(question, answers, all_answers)
+        return
+
+    # Route to specific renderer based on question type
+    if q_type == "checkbox":
+        render_checkbox_chart(question, answers, viz_config)
+    elif q_type in ("radio", "select"):
+        render_selection_chart(question, answers, viz_config)
+    elif q_type == "yes_no":
+        render_yes_no_chart(question, answers, viz_config)
+    elif q_type == "nps":
+        render_nps_chart(question, answers, viz_config)
+    elif q_type in ("linear_scale", "rating", "slider", "number"):
+        render_numeric_chart(question, answers, viz_config)
+    elif q_type in ("text_input", "text_area"):
+        render_text_list(question, answers, all_answers)
+    elif q_type == "compound":
+        render_compound_chart(question, all_answers)
+    elif q_type == "matrix":
+        render_matrix_chart(question, answers, all_answers, viz_config)
+    elif q_type == "ranking":
+        render_ranking_chart(question, answers, viz_config)
+    else:
+        # Fallback to text list
+        render_text_list(question, answers, all_answers)
+
+
+def render_checkbox_chart(question: dict, answers: list, viz_config: dict):
+    """Render checkbox (multi-select) results."""
+    from collections import Counter
+
+    # Parse checkbox answers (comma-separated)
+    all_selections = []
+    for ans in answers:
+        if isinstance(ans, str):
+            selections = [s.strip() for s in ans.split(",") if s.strip()]
+            all_selections.extend(selections)
+
+    if not all_selections:
+        st.info("No responses yet")
+        return
+
+    counts = Counter(all_selections)
+    total_respondents = len(answers)
+
+    # Get config options
+    colors = viz_config.get("colors", {})
+    color_scheme = colors.get("scheme", "greens")
+    options = viz_config.get("options", {})
+    show_pct = options.get("show_percentage", True)
+
+    # Create DataFrame
+    df = pd.DataFrame([
+        {
+            "Option": opt,
+            "Count": count,
+            "Percentage": round(count / total_respondents * 100, 1)
+        }
+        for opt, count in counts.most_common()
+    ])
+
+    # Horizontal bar chart
+    chart = alt.Chart(df).mark_bar().encode(
+        x=alt.X("Count:Q", title="Responses"),
+        y=alt.Y("Option:N", sort="-x", title=None),
+        color=alt.Color("Count:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
+        tooltip=["Option", "Count", alt.Tooltip("Percentage:Q", format=".1f", title="% of respondents")]
+    ).properties(
+        height=max(len(df) * 40, 100)
+    )
+
+    st.altair_chart(chart, theme="streamlit", use_container_width=True)
+
+
+def render_selection_chart(question: dict, answers: list, viz_config: dict):
+    """Render radio/select (single choice) results."""
+    from collections import Counter
+
+    if not answers:
+        st.info("No responses yet")
+        return
+
+    counts = Counter(answers)
+    total = len(answers)
+
+    # Get config
+    colors = viz_config.get("colors", {})
+    color_scheme = colors.get("scheme", "blues")
+    options = viz_config.get("options", {})
+    pie_threshold = options.get("use_pie_threshold", 5)
+
+    # Create DataFrame
+    df = pd.DataFrame([
+        {
+            "Option": opt,
+            "Count": count,
+            "Percentage": round(count / total * 100, 1)
+        }
+        for opt, count in counts.most_common()
+    ])
+
+    # Use pie chart if few options, otherwise bar
+    if len(df) <= pie_threshold:
+        chart = alt.Chart(df).mark_arc(innerRadius=50).encode(
+            theta=alt.Theta("Count:Q"),
+            color=alt.Color(
+                "Option:N",
+                scale=alt.Scale(scheme=color_scheme),
+                legend=alt.Legend(
+                    orient="bottom",
+                    direction="vertical",
+                    labelLimit=400,  # Prevent label truncation
+                    title=None,
+                    columns=1
+                )
+            ),
+            tooltip=["Option", "Count", alt.Tooltip("Percentage:Q", format=".1f", title="%")]
+        ).properties(
+            height=300
+        )
+    else:
+        chart = alt.Chart(df).mark_bar().encode(
+            x=alt.X("Count:Q", title="Responses"),
+            y=alt.Y("Option:N", sort="-x", title=None),
+            color=alt.Color("Count:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
+            tooltip=["Option", "Count", alt.Tooltip("Percentage:Q", format=".1f", title="%")]
+        ).properties(
+            height=max(len(df) * 40, 100)
+        )
+
+    st.altair_chart(chart, theme="streamlit", use_container_width=True)
+
+
+def render_yes_no_chart(question: dict, answers: list, viz_config: dict):
+    """Render yes/no results as donut chart."""
+    from collections import Counter
+
+    if not answers:
+        st.info("No responses yet")
+        return
+
+    counts = Counter(answers)
+    total = len(answers)
+
+    # Get config colors
+    colors = viz_config.get("colors", {})
+    yes_color = colors.get("yes", "#4CAF50")
+    no_color = colors.get("no", "#F44336")
+
+    # Determine what counts as "yes" and "no"
+    yes_label = question.get("yes_label", "Yes")
+    no_label = question.get("no_label", "No")
+
+    yes_count = counts.get(yes_label, 0) + counts.get("yes", 0) + counts.get("Yes", 0)
+    no_count = counts.get(no_label, 0) + counts.get("no", 0) + counts.get("No", 0)
+
+    df = pd.DataFrame([
+        {"Response": yes_label, "Count": yes_count, "Color": yes_color},
+        {"Response": no_label, "Count": no_count, "Color": no_color}
+    ])
+
+    # Donut chart
+    chart = alt.Chart(df).mark_arc(innerRadius=60).encode(
+        theta=alt.Theta("Count:Q"),
+        color=alt.Color("Response:N", scale=alt.Scale(domain=[yes_label, no_label], range=[yes_color, no_color])),
+        tooltip=["Response", "Count"]
+    ).properties(
+        height=250
+    )
+
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.altair_chart(chart, theme="streamlit", use_container_width=True)
+    with col2:
+        yes_pct = yes_count / total * 100 if total > 0 else 0
+        no_pct = no_count / total * 100 if total > 0 else 0
+        st.metric(yes_label, f"{yes_count}", f"{yes_pct:.0f}%")
+        st.metric(no_label, f"{no_count}", f"{no_pct:.0f}%")
+
+
+def render_nps_chart(question: dict, answers: list, viz_config: dict):
+    """Render NPS (Net Promoter Score) visualization."""
+    if not answers:
+        st.info("No responses yet")
+        return
+
+    # Convert to numbers
+    scores = []
+    for ans in answers:
+        try:
+            scores.append(int(float(ans)))
+        except (ValueError, TypeError):
+            pass
+
+    if not scores:
+        st.info("No valid NPS scores")
+        return
+
+    # Get NPS categories from config
+    categories = viz_config.get("categories", {})
+    det_cfg = categories.get("detractors", {"min": 0, "max": 6})
+    pas_cfg = categories.get("passives", {"min": 7, "max": 8})
+    pro_cfg = categories.get("promoters", {"min": 9, "max": 10})
+
+    colors = viz_config.get("colors", {})
+    det_color = colors.get("detractors", "#F44336")
+    pas_color = colors.get("passives", "#FFC107")
+    pro_color = colors.get("promoters", "#4CAF50")
+
+    # Calculate NPS
+    detractors = sum(1 for s in scores if det_cfg["min"] <= s <= det_cfg["max"])
+    passives = sum(1 for s in scores if pas_cfg["min"] <= s <= pas_cfg["max"])
+    promoters = sum(1 for s in scores if pro_cfg["min"] <= s <= pro_cfg["max"])
+    total = len(scores)
+
+    det_pct = detractors / total * 100
+    pas_pct = passives / total * 100
+    pro_pct = promoters / total * 100
+    nps_score = pro_pct - det_pct
+
+    # Display NPS score prominently
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    with col1:
+        # NPS Score with color based on value
+        if nps_score >= 50:
+            delta_color = "normal"
+            label = "Excellent"
+        elif nps_score >= 0:
+            delta_color = "normal"
+            label = "Good"
+        else:
+            delta_color = "inverse"
+            label = "Needs Work"
+        st.metric("NPS Score", f"{nps_score:.0f}", label)
+    with col2:
+        st.metric("Promoters (9-10)", f"{promoters}", f"{pro_pct:.0f}%")
+    with col3:
+        st.metric("Passives (7-8)", f"{passives}", f"{pas_pct:.0f}%")
+    with col4:
+        st.metric("Detractors (0-6)", f"{detractors}", f"{det_pct:.0f}%")
+
+    # Stacked bar showing breakdown
+    df = pd.DataFrame([
+        {"Category": "Detractors (0-6)", "Count": detractors, "Percentage": det_pct, "Order": 1},
+        {"Category": "Passives (7-8)", "Count": passives, "Percentage": pas_pct, "Order": 2},
+        {"Category": "Promoters (9-10)", "Count": promoters, "Percentage": pro_pct, "Order": 3},
+    ])
+
+    chart = alt.Chart(df).mark_bar().encode(
+        x=alt.X("Percentage:Q", title="Percentage", stack="zero"),
+        color=alt.Color(
+            "Category:N",
+            scale=alt.Scale(
+                domain=["Detractors (0-6)", "Passives (7-8)", "Promoters (9-10)"],
+                range=[det_color, pas_color, pro_color]
+            ),
+            legend=alt.Legend(orient="bottom")
+        ),
+        order=alt.Order("Order:Q"),
+        tooltip=["Category", "Count", alt.Tooltip("Percentage:Q", format=".1f", title="%")]
+    ).properties(
+        height=60
+    )
+
+    st.altair_chart(chart, theme="streamlit", use_container_width=True)
+
+
+def render_numeric_chart(question: dict, answers: list, viz_config: dict):
+    """Render numeric scale/rating results."""
+    from collections import Counter
+
+    # Convert to numbers
+    numeric_answers = []
+    for ans in answers:
+        try:
+            numeric_answers.append(float(ans))
+        except (ValueError, TypeError):
+            pass
+
+    if not numeric_answers:
+        st.info("No responses yet")
+        return
+
+    # Calculate stats
+    avg = sum(numeric_answers) / len(numeric_answers)
+    min_val = min(numeric_answers)
+    max_val = max(numeric_answers)
+
+    # Get scale info from question
+    scale_min = question.get("min", 1)
+    scale_max = question.get("max", 5)
+    min_label = question.get("min_label", "")
+    max_label = question.get("max_label", "")
+
+    # Get config
+    colors = viz_config.get("colors", {})
+    color_scheme = colors.get("scheme", "goldgreen")
+
+    # Display metrics
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    with col1:
+        pct = (avg - scale_min) / (scale_max - scale_min) * 100
+        st.metric("Average", f"{avg:.2f}", f"{pct:.0f}% of scale")
+    with col2:
+        st.metric("Responses", len(numeric_answers))
+    with col3:
+        st.metric("Min", f"{min_val:.0f}")
+    with col4:
+        st.metric("Max", f"{max_val:.0f}")
+
+    # Distribution chart
+    counts = Counter(int(x) for x in numeric_answers)
+
+    chart_data = []
+    for i in range(int(scale_min), int(scale_max) + 1):
+        label = str(i)
+        if i == int(scale_min) and min_label:
+            label = f"{i} ({min_label})"
+        elif i == int(scale_max) and max_label:
+            label = f"{i} ({max_label})"
+        chart_data.append({"Value": label, "NumericValue": i, "Count": counts.get(i, 0)})
+
+    df = pd.DataFrame(chart_data)
+
+    chart = alt.Chart(df).mark_bar().encode(
+        x=alt.X("Value:N", sort=alt.EncodingSortField(field="NumericValue"), title=None),
+        y=alt.Y("Count:Q", title="Responses"),
+        color=alt.Color("NumericValue:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
+        tooltip=["Value", "Count"]
+    ).properties(
+        height=200
+    )
+
+    st.altair_chart(chart, theme="streamlit", use_container_width=True)
+
+
+def render_text_list(question: dict, answers: list, all_answers: list):
+    """Render text answers as a formatted list."""
+    if not answers:
+        st.info("No responses yet")
+        return
+
+    viz_config = get_viz_config(question.get("type", "text_input"))
+    options = viz_config.get("options", {})
+    max_display = options.get("max_display", 20)
+    truncate_length = options.get("truncate_length", 300)
+
+    answer_key = f"q{question['id']}"
+    displayed = 0
+
+    for answer_data in all_answers:
+        if displayed >= max_display:
+            remaining = len([a for a in all_answers if a.get("answers", {}).get(answer_key)]) - max_display
+            if remaining > 0:
+                st.caption(f"... and {remaining} more responses")
+            break
+
+        ans = answer_data.get("answers", {}).get(answer_key)
+        if ans:
+            user = answer_data.get("_user_email", "Unknown").split("@")[0]
+            text = str(ans)
+            if len(text) > truncate_length:
+                text = text[:truncate_length] + "..."
+            st.markdown(f"**{user}:** {text}")
+            displayed += 1
+
+
+def render_compound_chart(question: dict, all_answers: list):
+    """Render compound question results."""
+    q_id = question["id"]
+
+    for sub in question.get("subquestions", []):
+        sub_key = sub["key"]
+        answer_key = f"q{q_id}_{sub_key}"
+
+        st.markdown(f"**{sub_key})** {sub['label']}")
+
+        for answer_data in all_answers:
+            ans = answer_data.get("answers", {}).get(answer_key)
+            if ans:
+                user = answer_data.get("_user_email", "Unknown").split("@")[0]
+                st.markdown(f"- **{user}:** {ans}")
+
+
+def render_matrix_chart(question: dict, answers: list, all_answers: list, viz_config: dict):
+    """Render matrix/grid question as heatmap."""
+    # For now, fallback to text - matrix visualization is complex
+    st.info("Matrix visualization - showing as list")
+    render_text_list(question, answers, all_answers)
+
+
+def render_ranking_chart(question: dict, answers: list, viz_config: dict):
+    """Render ranking question results."""
+    from collections import defaultdict
+
+    if not answers:
+        st.info("No responses yet")
+        return
+
+    # Parse ranking data (assuming JSON format)
+    rank_scores = defaultdict(float)
+    rank_counts = defaultdict(int)
+
+    options = question.get("options", [])
+    n_options = len(options)
+
+    for ans in answers:
+        try:
+            if isinstance(ans, str):
+                ranking = json.loads(ans)
+            else:
+                ranking = ans
+
+            if isinstance(ranking, list):
+                for rank, item in enumerate(ranking):
+                    # Higher score for higher rank (1st place = n points, etc)
+                    score = n_options - rank
+                    rank_scores[item] += score
+                    rank_counts[item] += 1
+        except:
+            continue
+
+    if not rank_scores:
+        render_text_list(question, answers, [])
+        return
+
+    # Create DataFrame sorted by score
+    df = pd.DataFrame([
+        {"Item": item, "Score": score, "Responses": rank_counts[item]}
+        for item, score in sorted(rank_scores.items(), key=lambda x: x[1], reverse=True)
+    ])
+
+    colors = viz_config.get("colors", {})
+    color_scheme = colors.get("scheme", "spectral")
+
+    chart = alt.Chart(df).mark_bar().encode(
+        x=alt.X("Score:Q", title="Total Score"),
+        y=alt.Y("Item:N", sort="-x", title=None),
+        color=alt.Color("Score:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
+        tooltip=["Item", "Score", "Responses"]
+    ).properties(
+        height=max(len(df) * 40, 100)
+    )
+
+    st.altair_chart(chart, theme="streamlit", use_container_width=True)
+
+
+# Legacy function names for backward compatibility
+def render_checkbox_results(question: dict, answers: list):
+    render_checkbox_chart(question, answers, get_viz_config("checkbox"))
+
+def render_radio_results(question: dict, answers: list):
+    render_selection_chart(question, answers, get_viz_config("radio"))
+
+def render_numeric_results(question: dict, answers: list):
+    render_numeric_chart(question, answers, get_viz_config("linear_scale"))
+
+def render_text_results(question: dict, answers: list, all_answers: list):
+    render_text_list(question, answers, all_answers)
+
+def render_compound_results(question: dict, all_answers: list):
+    render_compound_chart(question, all_answers)
 
 
 
@@ -2141,15 +2822,15 @@ def main():
     if st.query_params.get("debug"):
         with st.expander("🔧 Debug Info", expanded=True):
             st.write(f"**Authenticated user:** {authenticated_user}")
-            st.write(f"**Is CEO:** {is_ceo(authenticated_user)}")
-            st.write(f"**CEO_EMAIL:** {CEO_EMAIL or 'Not set'}")
+            st.write(f"**Is evaluator:** {is_evaluator(authenticated_user)}")
+            st.write(f"**SURVEY_EVALUATORS:** {SURVEY_EVALUATORS or 'Not set'}")
             st.write(f"**KBC_URL:** {KBC_URL}")
             st.write(f"**KBC_TOKEN:** {'***' + KBC_TOKEN[-4:] if KBC_TOKEN else 'Not set'}")
             st.write(f"**Has existing answers:** {st.session_state.get('has_existing_answers', False)}")
             st.json(get_debug_headers())
 
-    # CEO gets the dashboard view instead of the questionnaire
-    if is_ceo(authenticated_user):
+    # Evaluators get the dashboard view instead of the questionnaire
+    if is_evaluator(authenticated_user):
         render_ceo_dashboard()
         return
 

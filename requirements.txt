@@ -1,5 +1,6 @@
 streamlit
 streamlit-sortables
+streamlit-aggrid
 python-dotenv
 pyyaml
 kbcstorage

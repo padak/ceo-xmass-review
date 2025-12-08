@@ -136,5 +136,6 @@ streamlit run app.py
 ```bash
 KBC_URL=https://connection.keboola.com  # Keboola API URL
 KBC_TOKEN=xxx                            # Keboola Storage API token
-CEO_EMAIL=admin@company.com             # Email for admin dashboard
+SURVEY_EVALUATORS=jan@company.com,petra@company.com  # Comma-separated emails for dashboard access
+AGGRID_LICENSE_KEY=xxx                   # Optional: AG Grid Enterprise license for advanced table features
 ```
