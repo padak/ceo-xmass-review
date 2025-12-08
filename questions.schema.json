@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "questions.schema.json",
+  "title": "CEO Assessment Questions Configuration",
+  "description": "Schema for defining questionnaire questions in the CEO Assessment app",
+  "type": "object",
+  "required": ["questions"],
+  "properties": {
+    "questions": {
+      "type": "array",
+      "description": "List of questions in the assessment",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/question"
+      }
+    }
+  },
+  "definitions": {
+    "question": {
+      "type": "object",
+      "required": ["id", "title", "type"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Unique question identifier (sequential, starting from 1)"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The main question text displayed to the user"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Optional helper text shown below the title"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["text_input", "text_area", "compound", "radio", "checkbox", "select"],
+          "description": "Type of input widget for this question"
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text for text_input and text_area types"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "description": "Required for radio, checkbox, and select types"
+        },
+        "subquestions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/subquestion"
+          },
+          "minItems": 1,
+          "description": "Required for compound type - list of sub-questions"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "radio" } }
+          },
+          "then": {
+            "required": ["options"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "checkbox" } }
+          },
+          "then": {
+            "required": ["options"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "select" } }
+          },
+          "then": {
+            "required": ["options"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "compound" } }
+          },
+          "then": {
+            "required": ["subquestions"]
+          }
+        }
+      ]
+    },
+    "subquestion": {
+      "type": "object",
+      "required": ["key", "label"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z]$",
+          "description": "Single lowercase letter identifier (a, b, c, ...)"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The sub-question text"
+        }
+      }
+    }
+  }
+}

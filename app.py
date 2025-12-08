@@ -4,8 +4,11 @@ import json
 import os
 import tempfile
 import logging
+import io
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
+import yaml
 
 # Load environment variables from .env file (for local development)
 load_dotenv()
@@ -26,6 +29,54 @@ ANSWERS_TAG = "CEO_Assessment_Answers"
 
 # CEO email for admin view (shows all responses)
 CEO_EMAIL = os.environ.get("CEO_EMAIL", "")
+
+
+# Questions configuration file path
+QUESTIONS_CONFIG_FILE = os.environ.get("QUESTIONS_CONFIG_FILE", "questions.yaml")
+
+
+def load_questions_from_yaml(config_path: str = QUESTIONS_CONFIG_FILE) -> tuple[list[dict], dict]:
+    """Load questions configuration and settings from YAML file.
+
+    Returns:
+        Tuple of (questions list, settings dict)
+    """
+    # Try relative to script directory first, then current directory
+    script_dir = Path(__file__).parent
+    possible_paths = [
+        script_dir / config_path,
+        Path(config_path),
+    ]
+
+    # Default settings
+    default_settings = {
+        "display_mode": "one_by_one",  # "one_by_one" or "all_at_once"
+        "show_progress_bar": True,
+        "allow_back_navigation": True,
+        "show_question_numbers": True,
+        "require_all_answers": False,
+        "title": "Assessment",
+        "welcome_message": "",
+        "thank_you_message": "Thank you for completing the assessment!",
+    }
+
+    for path in possible_paths:
+        if path.exists():
+            logger.info(f"Loading questions from {path}")
+            with open(path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                questions = config.get("questions", [])
+
+                # Merge settings with defaults
+                settings = default_settings.copy()
+                yaml_settings = config.get("settings", {})
+                settings.update(yaml_settings)
+
+                logger.info(f"Loaded {len(questions)} questions, display_mode={settings['display_mode']}")
+                return questions, settings
+
+    logger.error(f"Questions config file not found: {config_path}")
+    raise FileNotFoundError(f"Questions config file not found: {config_path}")
 
 
 def get_keboola_files_client():
@@ -256,6 +307,48 @@ def save_answers_locally(email: str, answers: dict):
     logger.info(f"Saved answers locally to {filepath}")
 
 
+def generate_csv_export(all_answers: list[dict]) -> str:
+    """Generate CSV content from all answers."""
+    output = io.StringIO()
+
+    # Header row
+    respondents = [a.get("_user_email", a.get("email", "Unknown")) for a in all_answers]
+    header = ["Question"] + [r.split("@")[0] for r in respondents]
+    output.write(",".join(f'"{h}"' for h in header) + "\n")
+
+    # Data rows
+    for question in QUESTIONS:
+        q_id = question["id"]
+        q_type = question["type"]
+
+        if q_type == "compound":
+            # Main question header
+            row = [f"Q{q_id}: {question['title']}"] + [""] * len(respondents)
+            output.write(",".join(f'"{cell}"' for cell in row) + "\n")
+
+            # Sub-questions
+            for sub in question["subquestions"]:
+                sub_key = sub["key"]
+                answer_key = f"q{q_id}_{sub_key}"
+                row = [f"  {sub_key}) {sub['label']}"]
+                for answer_data in all_answers:
+                    answer = answer_data.get("answers", {}).get(answer_key, "")
+                    # Escape quotes and newlines for CSV
+                    answer = answer.replace('"', '""').replace('\n', ' ')
+                    row.append(answer)
+                output.write(",".join(f'"{cell}"' for cell in row) + "\n")
+        else:
+            answer_key = f"q{q_id}"
+            row = [f"Q{q_id}: {question['title']}"]
+            for answer_data in all_answers:
+                answer = answer_data.get("answers", {}).get(answer_key, "")
+                answer = answer.replace('"', '""').replace('\n', ' ')
+                row.append(answer)
+            output.write(",".join(f'"{cell}"' for cell in row) + "\n")
+
+    return output.getvalue()
+
+
 def get_authenticated_user():
     """
     Get authenticated user email from Keboola OIDC proxy header.
@@ -357,82 +450,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# Questions definition (id starts at 1, user identified via OIDC)
-QUESTIONS = [
-    {
-        "id": 1,
-        "title": "What have you shipped in the last 3 weeks that made our customers' lives better?",
-        "type": "text_area"
-    },
-    {
-        "id": 2,
-        "title": "In which areas do you support me so well that I don't have to think about them?",
-        "type": "text_area"
-    },
-    {
-        "id": 3,
-        "title": "What do you excel at?",
-        "type": "text_area"
-    },
-    {
-        "id": 4,
-        "title": "What do your colleagues excel at that you admire or learn from?",
-        "type": "text_area"
-    },
-    {
-        "id": 5,
-        "title": "What bottlenecks with other departments, if cleared, would help you most?",
-        "type": "text_area"
-    },
-    {
-        "id": 6,
-        "title": "If you could magically eliminate 3 activities that cause you the most pain, which would they be?",
-        "type": "text_area",
-        "placeholder": "1. \n2. \n3. "
-    },
-    {
-        "id": 7,
-        "title": "Self-evaluation",
-        "subtitle": "Let's reflect on your strengths and growth areas",
-        "type": "compound",
-        "subquestions": [
-            {"key": "a", "label": "What are you struggling with? Where could I (CEO) help you improve?"},
-            {"key": "b", "label": "What are you great at that might be underutilized and could help the company more?"}
-        ]
-    },
-    {
-        "id": 8,
-        "title": "What would you do if you were in my (CEO) role?",
-        "subtitle": "Think about different time horizons",
-        "type": "compound",
-        "subquestions": [
-            {"key": "a", "label": "Next 7 days?"},
-            {"key": "b", "label": "Next 30 days?"},
-            {"key": "c", "label": "Next 90 days?"}
-        ]
-    },
-    {
-        "id": 9,
-        "title": "Pick any role(s) in the company - what would you do differently if you were in that role?",
-        "subtitle": "You can comment on multiple roles",
-        "type": "text_area",
-        "placeholder": "Role: ...\nWhat I would do: ...\n\nRole: ...\nWhat I would do: ..."
-    },
-    {
-        "id": 10,
-        "title": "What are our top 3 priorities and why?",
-        "subtitle": "What outcomes will they bring to customers and revenue?",
-        "type": "text_area",
-        "placeholder": "1. Priority: ... Why: ... Outcome: ...\n\n2. Priority: ... Why: ... Outcome: ...\n\n3. Priority: ... Why: ... Outcome: ..."
-    },
-    {
-        "id": 11,
-        "title": "What is THE single most important priority for the foreseeable future?",
-        "subtitle": "The one thing that would have 50%+ impact",
-        "type": "text_area"
-    }
-]
-
+# Load questions and settings from YAML configuration file
+QUESTIONS, SETTINGS = load_questions_from_yaml()
 TOTAL_QUESTIONS = len(QUESTIONS)
 
 
@@ -571,6 +590,442 @@ def render_question(question):
             st.markdown("<br>", unsafe_allow_html=True)
         return responses
 
+    elif q_type == "radio":
+        answer_key = get_answer_key(q_id)
+        widget_key = f"radio_{q_id}"
+        options = question.get("options", [])
+
+        # Get current value from answers
+        current_value = st.session_state.answers.get(answer_key, None)
+        # Find index of current value in options (None if not found)
+        current_index = options.index(current_value) if current_value in options else None
+
+        selected = st.radio(
+            label="Select one option",
+            options=options,
+            index=current_index,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        st.session_state.answers[answer_key] = selected
+        return selected
+
+    elif q_type == "checkbox":
+        answer_key = get_answer_key(q_id)
+        options = question.get("options", [])
+
+        # Get current selections from answers (stored as comma-separated string or list)
+        current_value = st.session_state.answers.get(answer_key, "")
+        if isinstance(current_value, str):
+            selected_items = [x.strip() for x in current_value.split(",") if x.strip()]
+        else:
+            selected_items = current_value if current_value else []
+
+        selections = []
+        for option in options:
+            widget_key = f"checkbox_{q_id}_{option}"
+            checked = st.checkbox(
+                label=option,
+                value=option in selected_items,
+                key=widget_key
+            )
+            if checked:
+                selections.append(option)
+
+        # Store as comma-separated string for consistency
+        st.session_state.answers[answer_key] = ", ".join(selections)
+        return selections
+
+    elif q_type == "select":
+        answer_key = get_answer_key(q_id)
+        widget_key = f"select_{q_id}"
+        options = question.get("options", [])
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key, "")
+        current_index = options.index(current_value) if current_value in options else 0
+
+        # Add empty option at the beginning if needed
+        options_with_placeholder = ["-- Select an option --"] + options
+
+        selected = st.selectbox(
+            label="Select an option",
+            options=options_with_placeholder,
+            index=current_index + 1 if current_value else 0,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+
+        # Don't store the placeholder
+        if selected != "-- Select an option --":
+            st.session_state.answers[answer_key] = selected
+        else:
+            st.session_state.answers[answer_key] = ""
+        return selected if selected != "-- Select an option --" else ""
+
+    elif q_type == "slider":
+        # Numeric slider with customizable range
+        answer_key = get_answer_key(q_id)
+        widget_key = f"slider_{q_id}"
+
+        min_val = question.get("min", 0)
+        max_val = question.get("max", 100)
+        step = question.get("step", 1)
+        default = question.get("default", min_val)
+
+        # Get current value from answers
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_value = type(min_val)(current_value)
+            except (ValueError, TypeError):
+                current_value = default
+        else:
+            current_value = default
+
+        value = st.slider(
+            label="Select a value",
+            min_value=min_val,
+            max_value=max_val,
+            value=current_value,
+            step=step,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        st.session_state.answers[answer_key] = value
+        return value
+
+    elif q_type == "linear_scale":
+        # Linear scale with labeled endpoints (like NPS or satisfaction)
+        answer_key = get_answer_key(q_id)
+        widget_key = f"scale_{q_id}"
+
+        min_val = question.get("min", 1)
+        max_val = question.get("max", 10)
+        min_label = question.get("min_label", "")
+        max_label = question.get("max_label", "")
+
+        # Create scale options
+        options = list(range(min_val, max_val + 1))
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_index = options.index(int(current_value))
+            except (ValueError, IndexError):
+                current_index = None
+        else:
+            current_index = None
+
+        # Show labels if provided
+        if min_label or max_label:
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                st.caption(f"← {min_label}" if min_label else "")
+            with col2:
+                st.caption(f"{max_label} →" if max_label else "", help=None)
+
+        selected = st.radio(
+            label="Select a value",
+            options=options,
+            index=current_index,
+            horizontal=True,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        st.session_state.answers[answer_key] = selected
+        return selected
+
+    elif q_type == "rating":
+        # Star/emoji rating
+        answer_key = get_answer_key(q_id)
+        widget_key = f"rating_{q_id}"
+
+        max_rating = question.get("max", 5)
+        icon = question.get("icon", "star")  # star, heart, thumb
+
+        # Map icon names to emojis
+        icon_map = {
+            "star": ("⭐", "☆"),
+            "heart": ("❤️", "🤍"),
+            "thumb": ("👍", "👎"),
+            "fire": ("🔥", "💨"),
+            "smile": ("😊", "😐"),
+        }
+        filled, empty = icon_map.get(icon, ("⭐", "☆"))
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key, 0)
+        if isinstance(current_value, str):
+            try:
+                current_value = int(current_value) if current_value else 0
+            except ValueError:
+                current_value = 0
+
+        # Create clickable rating using columns
+        cols = st.columns(max_rating)
+        for i in range(max_rating):
+            with cols[i]:
+                rating_val = i + 1
+                is_selected = rating_val <= current_value
+                btn_label = filled if is_selected else empty
+                if st.button(btn_label, key=f"{widget_key}_{i}", use_container_width=True):
+                    st.session_state.answers[answer_key] = rating_val
+                    st.rerun()
+
+        if current_value > 0:
+            st.caption(f"Your rating: {current_value}/{max_rating}")
+
+        return current_value
+
+    elif q_type == "nps":
+        # Net Promoter Score (0-10 scale with specific styling)
+        answer_key = get_answer_key(q_id)
+        widget_key = f"nps_{q_id}"
+
+        # NPS is always 0-10
+        options = list(range(0, 11))
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_index = options.index(int(current_value))
+            except (ValueError, IndexError):
+                current_index = None
+        else:
+            current_index = None
+
+        # Show NPS labels
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            st.caption("← Not likely at all")
+        with col3:
+            st.caption("Extremely likely →")
+
+        selected = st.radio(
+            label="NPS Score",
+            options=options,
+            index=current_index,
+            horizontal=True,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+
+        # Show category based on score
+        if selected is not None:
+            if selected <= 6:
+                st.caption("🔴 Detractor")
+            elif selected <= 8:
+                st.caption("🟡 Passive")
+            else:
+                st.caption("🟢 Promoter")
+
+        st.session_state.answers[answer_key] = selected
+        return selected
+
+    elif q_type == "date":
+        # Date picker
+        answer_key = get_answer_key(q_id)
+        widget_key = f"date_{q_id}"
+
+        from datetime import date
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value:
+            try:
+                if isinstance(current_value, str):
+                    current_value = date.fromisoformat(current_value)
+            except ValueError:
+                current_value = None
+
+        selected = st.date_input(
+            label="Select a date",
+            value=current_value,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        # Store as ISO string for JSON serialization
+        st.session_state.answers[answer_key] = selected.isoformat() if selected else ""
+        return selected
+
+    elif q_type == "time":
+        # Time picker
+        answer_key = get_answer_key(q_id)
+        widget_key = f"time_{q_id}"
+
+        from datetime import time as dt_time
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value:
+            try:
+                if isinstance(current_value, str):
+                    parts = current_value.split(":")
+                    current_value = dt_time(int(parts[0]), int(parts[1]))
+            except (ValueError, IndexError):
+                current_value = None
+
+        selected = st.time_input(
+            label="Select a time",
+            value=current_value,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        # Store as string for JSON serialization
+        st.session_state.answers[answer_key] = selected.strftime("%H:%M") if selected else ""
+        return selected
+
+    elif q_type == "number":
+        # Number input with optional min/max/step
+        answer_key = get_answer_key(q_id)
+        widget_key = f"number_{q_id}"
+
+        min_val = question.get("min", None)
+        max_val = question.get("max", None)
+        step = question.get("step", 1)
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_value = float(current_value) if "." in str(current_value) else int(current_value)
+            except (ValueError, TypeError):
+                current_value = min_val if min_val is not None else 0
+        else:
+            current_value = min_val if min_val is not None else 0
+
+        value = st.number_input(
+            label="Enter a number",
+            min_value=min_val,
+            max_value=max_val,
+            value=current_value,
+            step=step,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        st.session_state.answers[answer_key] = value
+        return value
+
+    elif q_type == "matrix":
+        # Matrix/grid question with rows and columns
+        answer_key = get_answer_key(q_id)
+
+        rows = question.get("rows", [])
+        columns = question.get("columns", [])
+        multiple = question.get("multiple", False)  # Allow multiple selections per row
+
+        responses = {}
+
+        # Create header row
+        header_cols = st.columns([2] + [1] * len(columns))
+        with header_cols[0]:
+            st.write("")  # Empty corner
+        for i, col_label in enumerate(columns):
+            with header_cols[i + 1]:
+                st.markdown(f"**{col_label}**")
+
+        # Create rows
+        for row in rows:
+            row_key = row.get("key", row.get("label", "").lower().replace(" ", "_"))
+            row_label = row.get("label", row_key)
+            row_answer_key = f"{answer_key}_{row_key}"
+
+            row_cols = st.columns([2] + [1] * len(columns))
+            with row_cols[0]:
+                st.write(row_label)
+
+            if multiple:
+                # Checkbox mode - multiple selections per row
+                current_value = st.session_state.answers.get(row_answer_key, "")
+                if isinstance(current_value, str):
+                    selected_cols = [x.strip() for x in current_value.split(",") if x.strip()]
+                else:
+                    selected_cols = current_value if current_value else []
+
+                new_selections = []
+                for i, col_label in enumerate(columns):
+                    with row_cols[i + 1]:
+                        widget_key = f"matrix_{q_id}_{row_key}_{i}"
+                        checked = st.checkbox(
+                            label=col_label,
+                            value=col_label in selected_cols,
+                            key=widget_key,
+                            label_visibility="collapsed"
+                        )
+                        if checked:
+                            new_selections.append(col_label)
+
+                st.session_state.answers[row_answer_key] = ", ".join(new_selections)
+                responses[row_key] = new_selections
+            else:
+                # Radio mode - single selection per row
+                current_value = st.session_state.answers.get(row_answer_key, None)
+                widget_key = f"matrix_{q_id}_{row_key}"
+
+                for i, col_label in enumerate(columns):
+                    with row_cols[i + 1]:
+                        is_selected = current_value == col_label
+                        if st.button(
+                            "●" if is_selected else "○",
+                            key=f"{widget_key}_{i}",
+                            use_container_width=True
+                        ):
+                            st.session_state.answers[row_answer_key] = col_label
+                            st.rerun()
+
+                responses[row_key] = current_value
+
+        return responses
+
+    elif q_type == "ranking":
+        # Ranking question - drag to reorder (simplified version using number inputs)
+        answer_key = get_answer_key(q_id)
+
+        options = question.get("options", [])
+
+        # Get current ranking from answers
+        current_ranking = st.session_state.answers.get(answer_key, {})
+        if isinstance(current_ranking, str):
+            try:
+                current_ranking = json.loads(current_ranking) if current_ranking else {}
+            except json.JSONDecodeError:
+                current_ranking = {}
+
+        st.caption("Assign rank numbers (1 = highest priority)")
+
+        rankings = {}
+        for option in options:
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(option)
+            with col2:
+                widget_key = f"rank_{q_id}_{option}"
+                current_val = current_ranking.get(option, 0)
+                rank = st.number_input(
+                    label=f"Rank for {option}",
+                    min_value=0,
+                    max_value=len(options),
+                    value=current_val,
+                    step=1,
+                    key=widget_key,
+                    label_visibility="collapsed"
+                )
+                rankings[option] = rank
+
+        # Store as JSON string
+        st.session_state.answers[answer_key] = json.dumps(rankings)
+
+        # Show current order
+        ranked_items = [(k, v) for k, v in rankings.items() if v > 0]
+        ranked_items.sort(key=lambda x: x[1])
+        if ranked_items:
+            st.caption("Current order: " + " → ".join([item[0] for item in ranked_items]))
+
+        return rankings
+
     return None
 
 
@@ -688,14 +1143,426 @@ def render_thank_you():
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("# 🎉 Thank You!")
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""
+
+    thank_you_msg = SETTINGS.get("thank_you_message", "Thank you for completing the assessment!")
+    st.markdown(f"""
     <div style='text-align: center; font-size: 1.2rem;'>
-        Your assessment has been submitted successfully.<br><br>
-        I really appreciate you taking the time to share your thoughts.<br>
-        Your feedback is invaluable for our growth.
+        {thank_you_msg}
     </div>
     """, unsafe_allow_html=True)
     st.balloons()
+
+
+def render_all_questions(authenticated_user):
+    """Render all questions on a single page (all_at_once mode)."""
+    user_display = authenticated_user or "there"
+
+    # Welcome message
+    welcome_msg = SETTINGS.get("welcome_message", "")
+    if welcome_msg:
+        st.markdown(f"""
+        <div style='background-color: #e8f5e9; padding: 1rem; border-radius: 10px; margin-bottom: 2rem;'>
+            {welcome_msg}
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style='background-color: #e8f5e9; padding: 1rem; border-radius: 10px; margin-bottom: 2rem;'>
+            <strong>Hi {user_display}!</strong><br><br>
+            Thank you for taking the time to share your thoughts.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Render all questions
+    for i, question in enumerate(QUESTIONS):
+        q_id = question["id"]
+
+        st.markdown("---")
+
+        # Question header
+        if SETTINGS.get("show_question_numbers", True):
+            st.markdown(f"<span class='question-number'>Question {q_id} of {TOTAL_QUESTIONS}</span>", unsafe_allow_html=True)
+
+        st.markdown(f"## {question['title']}")
+
+        if "subtitle" in question:
+            st.markdown(f"<p class='subtitle'>{question['subtitle']}</p>", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Render the question input
+        render_question_input(question)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Submit button
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("Submit ✓", use_container_width=True, type="primary"):
+            submit_assessment(authenticated_user)
+
+
+def render_question_input(question):
+    """Render just the input part of a question (without header)."""
+    q_id = question["id"]
+    q_type = question["type"]
+    placeholder = question.get("placeholder", "")
+
+    if q_type == "text_input":
+        answer_key = get_answer_key(q_id)
+        widget_key = f"input_{q_id}"
+        init_widget_state(widget_key, answer_key)
+
+        st.text_input(
+            label="Your answer",
+            placeholder=placeholder,
+            label_visibility="collapsed",
+            key=widget_key,
+            on_change=sync_answer,
+            args=(widget_key, answer_key)
+        )
+        sync_answer(widget_key, answer_key)
+
+    elif q_type == "text_area":
+        answer_key = get_answer_key(q_id)
+        widget_key = f"input_{q_id}"
+        init_widget_state(widget_key, answer_key)
+
+        st.text_area(
+            label="Your answer",
+            placeholder=placeholder,
+            label_visibility="collapsed",
+            height=150,
+            key=widget_key,
+            on_change=sync_answer,
+            args=(widget_key, answer_key)
+        )
+        sync_answer(widget_key, answer_key)
+
+    elif q_type == "compound":
+        for sub in question["subquestions"]:
+            sub_key = sub["key"]
+            answer_key = get_answer_key(q_id, sub_key)
+            widget_key = f"input_{q_id}_{sub_key}"
+            init_widget_state(widget_key, answer_key)
+
+            st.markdown(f"**{sub_key})** {sub['label']}")
+            st.text_area(
+                label=f"Answer for {sub_key}",
+                label_visibility="collapsed",
+                height=100,
+                key=widget_key,
+                on_change=sync_answer,
+                args=(widget_key, answer_key)
+            )
+            sync_answer(widget_key, answer_key)
+
+    else:
+        # For other question types, call render_question which handles them
+        # Note: In all_at_once mode, the header is rendered separately
+        render_question_body(question)
+
+
+def render_question_body(question):
+    """Render just the body/input of a question (used in all_at_once mode)."""
+    q_id = question["id"]
+    q_type = question["type"]
+
+    # Handle all the other question types (slider, linear_scale, rating, etc.)
+    # This is a simplified version that just renders the input controls
+    answer_key = get_answer_key(q_id)
+
+    if q_type == "radio":
+        widget_key = f"radio_{q_id}"
+        options = question.get("options", [])
+        current_value = st.session_state.answers.get(answer_key, None)
+        current_index = options.index(current_value) if current_value in options else None
+
+        selected = st.radio(
+            label="Select one option",
+            options=options,
+            index=current_index,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        st.session_state.answers[answer_key] = selected
+
+    elif q_type == "checkbox":
+        options = question.get("options", [])
+        current_value = st.session_state.answers.get(answer_key, "")
+        if isinstance(current_value, str):
+            selected_items = [x.strip() for x in current_value.split(",") if x.strip()]
+        else:
+            selected_items = current_value if current_value else []
+
+        selections = []
+        for option in options:
+            widget_key = f"checkbox_{q_id}_{option}"
+            checked = st.checkbox(label=option, value=option in selected_items, key=widget_key)
+            if checked:
+                selections.append(option)
+        st.session_state.answers[answer_key] = ", ".join(selections)
+
+    elif q_type == "select":
+        widget_key = f"select_{q_id}"
+        options = question.get("options", [])
+        current_value = st.session_state.answers.get(answer_key, "")
+        options_with_placeholder = ["-- Select an option --"] + options
+        current_index = options.index(current_value) + 1 if current_value in options else 0
+
+        selected = st.selectbox(
+            label="Select an option",
+            options=options_with_placeholder,
+            index=current_index,
+            label_visibility="collapsed",
+            key=widget_key
+        )
+        if selected != "-- Select an option --":
+            st.session_state.answers[answer_key] = selected
+        else:
+            st.session_state.answers[answer_key] = ""
+
+    elif q_type == "slider":
+        widget_key = f"slider_{q_id}"
+        min_val = question.get("min", 0)
+        max_val = question.get("max", 100)
+        step = question.get("step", 1)
+        default = question.get("default", min_val)
+
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_value = type(min_val)(current_value)
+            except (ValueError, TypeError):
+                current_value = default
+        else:
+            current_value = default
+
+        value = st.slider(
+            label="Select a value",
+            min_value=min_val, max_value=max_val, value=current_value, step=step,
+            label_visibility="collapsed", key=widget_key
+        )
+        st.session_state.answers[answer_key] = value
+
+    elif q_type == "linear_scale":
+        widget_key = f"scale_{q_id}"
+        min_val = question.get("min", 1)
+        max_val = question.get("max", 10)
+        min_label = question.get("min_label", "")
+        max_label = question.get("max_label", "")
+        options = list(range(min_val, max_val + 1))
+
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_index = options.index(int(current_value))
+            except (ValueError, IndexError):
+                current_index = None
+        else:
+            current_index = None
+
+        if min_label or max_label:
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                st.caption(f"← {min_label}" if min_label else "")
+            with col2:
+                st.caption(f"{max_label} →" if max_label else "")
+
+        selected = st.radio(
+            label="Select a value", options=options, index=current_index,
+            horizontal=True, label_visibility="collapsed", key=widget_key
+        )
+        st.session_state.answers[answer_key] = selected
+
+    elif q_type == "rating":
+        widget_key = f"rating_{q_id}"
+        max_rating = question.get("max", 5)
+        icon = question.get("icon", "star")
+        icon_map = {"star": ("⭐", "☆"), "heart": ("❤️", "🤍"), "thumb": ("👍", "👎"), "fire": ("🔥", "💨"), "smile": ("😊", "😐")}
+        filled, empty = icon_map.get(icon, ("⭐", "☆"))
+
+        current_value = st.session_state.answers.get(answer_key, 0)
+        if isinstance(current_value, str):
+            try:
+                current_value = int(current_value) if current_value else 0
+            except ValueError:
+                current_value = 0
+
+        cols = st.columns(max_rating)
+        for i in range(max_rating):
+            with cols[i]:
+                rating_val = i + 1
+                is_selected = rating_val <= current_value
+                btn_label = filled if is_selected else empty
+                if st.button(btn_label, key=f"{widget_key}_{i}", use_container_width=True):
+                    st.session_state.answers[answer_key] = rating_val
+                    st.rerun()
+
+        if current_value > 0:
+            st.caption(f"Your rating: {current_value}/{max_rating}")
+
+    elif q_type == "nps":
+        widget_key = f"nps_{q_id}"
+        options = list(range(0, 11))
+
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_index = options.index(int(current_value))
+            except (ValueError, IndexError):
+                current_index = None
+        else:
+            current_index = None
+
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            st.caption("← Not likely at all")
+        with col3:
+            st.caption("Extremely likely →")
+
+        selected = st.radio(
+            label="NPS Score", options=options, index=current_index,
+            horizontal=True, label_visibility="collapsed", key=widget_key
+        )
+
+        if selected is not None:
+            if selected <= 6:
+                st.caption("🔴 Detractor")
+            elif selected <= 8:
+                st.caption("🟡 Passive")
+            else:
+                st.caption("🟢 Promoter")
+        st.session_state.answers[answer_key] = selected
+
+    elif q_type == "date":
+        from datetime import date
+        widget_key = f"date_{q_id}"
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value:
+            try:
+                if isinstance(current_value, str):
+                    current_value = date.fromisoformat(current_value)
+            except ValueError:
+                current_value = None
+
+        selected = st.date_input(label="Select a date", value=current_value, label_visibility="collapsed", key=widget_key)
+        st.session_state.answers[answer_key] = selected.isoformat() if selected else ""
+
+    elif q_type == "time":
+        from datetime import time as dt_time
+        widget_key = f"time_{q_id}"
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value:
+            try:
+                if isinstance(current_value, str):
+                    parts = current_value.split(":")
+                    current_value = dt_time(int(parts[0]), int(parts[1]))
+            except (ValueError, IndexError):
+                current_value = None
+
+        selected = st.time_input(label="Select a time", value=current_value, label_visibility="collapsed", key=widget_key)
+        st.session_state.answers[answer_key] = selected.strftime("%H:%M") if selected else ""
+
+    elif q_type == "number":
+        widget_key = f"number_{q_id}"
+        min_val = question.get("min", None)
+        max_val = question.get("max", None)
+        step = question.get("step", 1)
+
+        current_value = st.session_state.answers.get(answer_key)
+        if current_value is not None and current_value != "":
+            try:
+                current_value = float(current_value) if "." in str(current_value) else int(current_value)
+            except (ValueError, TypeError):
+                current_value = min_val if min_val is not None else 0
+        else:
+            current_value = min_val if min_val is not None else 0
+
+        value = st.number_input(
+            label="Enter a number", min_value=min_val, max_value=max_val,
+            value=current_value, step=step, label_visibility="collapsed", key=widget_key
+        )
+        st.session_state.answers[answer_key] = value
+
+    elif q_type == "matrix":
+        rows = question.get("rows", [])
+        columns = question.get("columns", [])
+        multiple = question.get("multiple", False)
+
+        header_cols = st.columns([2] + [1] * len(columns))
+        with header_cols[0]:
+            st.write("")
+        for i, col_label in enumerate(columns):
+            with header_cols[i + 1]:
+                st.markdown(f"**{col_label}**")
+
+        for row in rows:
+            row_key = row.get("key", row.get("label", "").lower().replace(" ", "_"))
+            row_label = row.get("label", row_key)
+            row_answer_key = f"{answer_key}_{row_key}"
+
+            row_cols = st.columns([2] + [1] * len(columns))
+            with row_cols[0]:
+                st.write(row_label)
+
+            if multiple:
+                current_value = st.session_state.answers.get(row_answer_key, "")
+                if isinstance(current_value, str):
+                    selected_cols = [x.strip() for x in current_value.split(",") if x.strip()]
+                else:
+                    selected_cols = current_value if current_value else []
+
+                new_selections = []
+                for i, col_label in enumerate(columns):
+                    with row_cols[i + 1]:
+                        widget_key = f"matrix_{q_id}_{row_key}_{i}"
+                        checked = st.checkbox(label=col_label, value=col_label in selected_cols, key=widget_key, label_visibility="collapsed")
+                        if checked:
+                            new_selections.append(col_label)
+                st.session_state.answers[row_answer_key] = ", ".join(new_selections)
+            else:
+                current_value = st.session_state.answers.get(row_answer_key, None)
+                widget_key = f"matrix_{q_id}_{row_key}"
+                for i, col_label in enumerate(columns):
+                    with row_cols[i + 1]:
+                        is_selected = current_value == col_label
+                        if st.button("●" if is_selected else "○", key=f"{widget_key}_{i}", use_container_width=True):
+                            st.session_state.answers[row_answer_key] = col_label
+                            st.rerun()
+
+    elif q_type == "ranking":
+        options = question.get("options", [])
+        current_ranking = st.session_state.answers.get(answer_key, {})
+        if isinstance(current_ranking, str):
+            try:
+                current_ranking = json.loads(current_ranking) if current_ranking else {}
+            except json.JSONDecodeError:
+                current_ranking = {}
+
+        st.caption("Assign rank numbers (1 = highest priority)")
+        rankings = {}
+        for option in options:
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(option)
+            with col2:
+                widget_key = f"rank_{q_id}_{option}"
+                current_val = current_ranking.get(option, 0)
+                rank = st.number_input(
+                    label=f"Rank for {option}", min_value=0, max_value=len(options),
+                    value=current_val, step=1, key=widget_key, label_visibility="collapsed"
+                )
+                rankings[option] = rank
+        st.session_state.answers[answer_key] = json.dumps(rankings)
+
+        ranked_items = [(k, v) for k, v in rankings.items() if v > 0]
+        ranked_items.sort(key=lambda x: x[1])
+        if ranked_items:
+            st.caption("Current order: " + " → ".join([item[0] for item in ranked_items]))
 
 
 def is_ceo(email: str) -> bool:
@@ -720,6 +1587,30 @@ def render_ceo_dashboard():
     if not all_answers:
         st.warning("No responses found yet.")
         return
+
+    # Export section
+    st.markdown("---")
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        # CSV download
+        csv_data = generate_csv_export(all_answers)
+        st.download_button(
+            label="Download CSV",
+            data=csv_data,
+            file_name=f"ceo_assessment_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+            type="primary"
+        )
+
+    with col2:
+        # Refresh button
+        if st.button("Refresh Data", use_container_width=True):
+            if "all_answers" in st.session_state:
+                del st.session_state.all_answers
+            st.rerun()
 
     # Show respondents with timestamps
     st.markdown("---")
@@ -785,11 +1676,6 @@ def render_ceo_dashboard():
                     else:
                         st.markdown("_No answer_")
 
-    # Refresh button
-    st.markdown("---")
-    if st.button("🔄 Refresh Data", use_container_width=True):
-        del st.session_state.all_answers
-        st.rerun()
 
 
 def render_existing_answers_choice(authenticated_user):
@@ -881,6 +1767,15 @@ def main():
         render_review_page(authenticated_user)
         return
 
+    # Check display mode from settings
+    display_mode = SETTINGS.get("display_mode", "one_by_one")
+
+    if display_mode == "all_at_once":
+        # Render all questions on single page
+        render_all_questions(authenticated_user)
+        return
+
+    # === ONE BY ONE MODE ===
     # Welcome message on first question
     if st.session_state.current_step == 0:
         user_display = authenticated_user or "there"

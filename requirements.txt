@@ -1,1 +1,6 @@
+streamlit
+python-dotenv
+pyyaml
 kbcstorage
+google-api-python-client
+google-auth

@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=questions.schema.json
+# CEO Assessment Questions Configuration
+# See questions.instructions.md for documentation
+# Supported types: text_input, text_area, compound, radio, checkbox, select
+
+questions:
+  - id: 1
+    title: "What have you shipped in the last 3 weeks that made our customers' lives better?"
+    type: text_area
+
+  - id: 2
+    title: "In which areas do you support me so well that I don't have to think about them?"
+    type: text_area
+
+  - id: 3
+    title: "What do you excel at?"
+    type: text_area
+
+  - id: 4
+    title: "What do your colleagues excel at that you admire or learn from?"
+    type: text_area
+
+  - id: 5
+    title: "What bottlenecks with other departments, if cleared, would help you most?"
+    type: text_area
+
+  - id: 6
+    title: "If you could magically eliminate 3 activities that cause you the most pain, which would they be?"
+    type: text_area
+    placeholder: "1. \n2. \n3. "
+
+  - id: 7
+    title: "Self-evaluation"
+    subtitle: "Let's reflect on your strengths and growth areas"
+    type: compound
+    subquestions:
+      - key: a
+        label: "What are you struggling with? Where could I (CEO) help you improve?"
+      - key: b
+        label: "What are you great at that might be underutilized and could help the company more?"
+
+  - id: 8
+    title: "What would you do if you were in my (CEO) role?"
+    subtitle: "Think about different time horizons"
+    type: compound
+    subquestions:
+      - key: a
+        label: "Next 7 days?"
+      - key: b
+        label: "Next 30 days?"
+      - key: c
+        label: "Next 90 days?"
+
+  - id: 9
+    title: "Pick any role(s) in the company - what would you do differently if you were in that role?"
+    subtitle: "You can comment on multiple roles"
+    type: text_area
+    placeholder: "Role: ...\nWhat I would do: ...\n\nRole: ...\nWhat I would do: ..."
+
+  - id: 10
+    title: "What are our top 3 priorities and why?"
+    subtitle: "What outcomes will they bring to customers and revenue?"
+    type: text_area
+    placeholder: "1. Priority: ... Why: ... Outcome: ...\n\n2. Priority: ... Why: ... Outcome: ...\n\n3. Priority: ... Why: ... Outcome: ..."
+
+  - id: 11
+    title: "What is THE single most important priority for the foreseeable future?"
+    subtitle: "The one thing that would have 50%+ impact"
+    type: text_area
+
+# Example of other supported types (not used in this questionnaire):
+#
+#  - id: 99
+#    title: "How satisfied are you with your role?"
+#    type: radio
+#    options:
+#      - "Very satisfied"
+#      - "Satisfied"
+#      - "Neutral"
+#      - "Dissatisfied"
+#      - "Very dissatisfied"
+#
+#  - id: 100
+#    title: "Which tools do you use daily?"
+#    type: checkbox
+#    options:
+#      - "Slack"
+#      - "Jira"
+#      - "GitHub"
+#      - "Notion"
+#
+#  - id: 101
+#    title: "Select your department"
+#    type: select
+#    options:
+#      - "Engineering"
+#      - "Product"
+#      - "Sales"
+#      - "Marketing"
