@@ -153,7 +153,50 @@ def load_questions_from_yaml(config_path: Path | str | None = None) -> tuple[lis
 
         total = len(intro_questions) + len(questions)
         logger.info(f"Loaded {total} questions ({len(intro_questions)} intro + {len(questions)} main), display_mode={settings['display_mode']}")
+
+        # Apply environment variable overrides to settings
+        settings = apply_env_overrides(settings)
+
         return intro_questions, questions, settings
+
+
+# Settings that can be overridden via environment variables
+# Maps setting name to (env_var_name, type_converter)
+OVERRIDABLE_SETTINGS = {
+    "display_mode": ("DISPLAY_MODE", str),
+    "show_progress_bar": ("SHOW_PROGRESS_BAR", lambda x: x.lower() in ("true", "1", "yes")),
+    "allow_back_navigation": ("ALLOW_BACK_NAVIGATION", lambda x: x.lower() in ("true", "1", "yes")),
+    "show_question_numbers": ("SHOW_QUESTION_NUMBERS", lambda x: x.lower() in ("true", "1", "yes")),
+    "require_all_answers": ("REQUIRE_ALL_ANSWERS", lambda x: x.lower() in ("true", "1", "yes")),
+    "randomize_questions": ("RANDOMIZE_QUESTIONS", lambda x: x.lower() in ("true", "1", "yes")),
+    "randomize_options": ("RANDOMIZE_OPTIONS", lambda x: x.lower() in ("true", "1", "yes")),
+    "auto_advance": ("AUTO_ADVANCE", lambda x: x.lower() in ("true", "1", "yes")),
+    "auto_advance_delay": ("AUTO_ADVANCE_DELAY", int),
+    "show_balloons": ("SHOW_BALLOONS", lambda x: x.lower() in ("true", "1", "yes")),
+    "oidc_identity": ("OIDC_IDENTITY", lambda x: x.lower() in ("true", "1", "yes")),
+    "welcome_message": ("WELCOME_MESSAGE", str),
+    "thank_you_message": ("THANK_YOU_MESSAGE", str),
+    "title": ("TITLE", str),
+}
+
+
+def apply_env_overrides(settings: dict) -> dict:
+    """Apply environment variable overrides to settings.
+
+    Environment variables take precedence over YAML settings.
+    This allows customizing questionnaire behavior per deployment.
+    """
+    for setting_name, (env_var, converter) in OVERRIDABLE_SETTINGS.items():
+        env_value = os.environ.get(env_var)
+        if env_value is not None:
+            try:
+                old_value = settings.get(setting_name)
+                new_value = converter(env_value)
+                settings[setting_name] = new_value
+                logger.info(f"Setting override: {setting_name} = {new_value} (was: {old_value}, from env {env_var})")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid value for {env_var}={env_value}: {e}")
+    return settings
 
 
 def get_keboola_files_client():

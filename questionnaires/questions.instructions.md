@@ -218,6 +218,39 @@ settings:
   thank_you_message: "Thank you!" # default: "Thank you for completing the assessment!"
 ```
 
+### Environment Variable Overrides
+
+Any setting can be overridden via environment variables. This is useful for:
+- Changing behavior per deployment without editing YAML
+- A/B testing different configurations
+- Quick adjustments in Keboola Data App Secrets
+
+**Environment variable names** (uppercase with underscores):
+
+| Setting | Environment Variable |
+|---------|---------------------|
+| `display_mode` | `DISPLAY_MODE` |
+| `show_progress_bar` | `SHOW_PROGRESS_BAR` |
+| `allow_back_navigation` | `ALLOW_BACK_NAVIGATION` |
+| `show_question_numbers` | `SHOW_QUESTION_NUMBERS` |
+| `require_all_answers` | `REQUIRE_ALL_ANSWERS` |
+| `randomize_questions` | `RANDOMIZE_QUESTIONS` |
+| `randomize_options` | `RANDOMIZE_OPTIONS` |
+| `auto_advance` | `AUTO_ADVANCE` |
+| `auto_advance_delay` | `AUTO_ADVANCE_DELAY` |
+| `show_balloons` | `SHOW_BALLOONS` |
+| `oidc_identity` | `OIDC_IDENTITY` |
+| `welcome_message` | `WELCOME_MESSAGE` |
+| `thank_you_message` | `THANK_YOU_MESSAGE` |
+| `title` | `TITLE` |
+
+**Boolean values:** Use `true`, `1`, `yes` (case-insensitive) for true, anything else for false.
+
+**Example:** Override display mode in Keboola Secrets:
+```
+DISPLAY_MODE = all_at_once
+```
+
 ---
 
 ## Question Types
