@@ -56,7 +56,15 @@ def get_viz_config(question_type: str) -> dict:
 
 
 def get_answers_tag() -> str:
-    """Get the tag for storing answers based on questionnaire_id and version from settings."""
+    """Get the tag for storing answers based on questionnaire_id and version from settings.
+
+    If 'answers_tag' is explicitly set in settings, use that (for backwards compatibility).
+    Otherwise, generate tag as {questionnaire_id}_v{version}.
+    """
+    # Allow explicit tag override for backwards compatibility with old data
+    if SETTINGS.get("answers_tag"):
+        return SETTINGS["answers_tag"]
+
     q_id = SETTINGS.get("questionnaire_id", "Assessment")
     version = SETTINGS.get("version", "1")
     return f"{q_id}_v{version}"
