@@ -5,10 +5,12 @@ import os
 import tempfile
 import logging
 import io
+import random
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 import yaml
+from streamlit_sortables import sort_items
 
 # Load environment variables from .env file (for local development)
 load_dotenv()
@@ -24,59 +26,134 @@ KEBOOLA_USER_HEADER = "X-Kbc-User-Email"
 KBC_URL = os.environ.get("KBC_URL") or os.environ.get("KBC_API_URL", "https://connection.keboola.com")
 KBC_TOKEN = os.environ.get("KBC_TOKEN") or os.environ.get("KBC_API_TOKEN", "")
 
-# Tag for CEO Assessment answers
-ANSWERS_TAG = "CEO_Assessment_Answers"
-
 # CEO email for admin view (shows all responses)
 CEO_EMAIL = os.environ.get("CEO_EMAIL", "")
 
 
-# Questions configuration file path
-QUESTIONS_CONFIG_FILE = os.environ.get("QUESTIONS_CONFIG_FILE", "questions.yaml")
+def get_answers_tag() -> str:
+    """Get the tag for storing answers based on questionnaire_id and version from settings."""
+    q_id = SETTINGS.get("questionnaire_id", "Assessment")
+    version = SETTINGS.get("version", "1")
+    return f"{q_id}_v{version}"
 
 
-def load_questions_from_yaml(config_path: str = QUESTIONS_CONFIG_FILE) -> tuple[list[dict], dict]:
-    """Load questions configuration and settings from YAML file.
+# Questionnaires folder path
+QUESTIONNAIRES_DIR = Path(__file__).parent / "questionnaires"
+
+# Default settings for questionnaires
+# Note: questionnaire_id, version, and title are REQUIRED (no defaults)
+DEFAULT_SETTINGS = {
+    # questionnaire_id: REQUIRED - no default
+    # version: REQUIRED - no default
+    # title: REQUIRED - no default
+    "display_mode": "one_by_one",  # "one_by_one" or "all_at_once"
+    "show_progress_bar": True,
+    "allow_back_navigation": True,
+    "show_question_numbers": True,
+    "require_all_answers": False,
+    "randomize_questions": False,
+    "randomize_options": False,
+    "auto_advance": False,
+    "auto_advance_delay": 600,
+    "show_balloons": True,  # Show balloons animation after submit
+    "welcome_message": "",
+    "thank_you_message": "Thank you for completing the assessment!",
+}
+
+# Required settings that must be provided in YAML
+REQUIRED_SETTINGS = ["questionnaire_id", "version", "title"]
+
+
+def get_questionnaire_path() -> Path | None:
+    """Determine which questionnaire file to load.
+
+    Priority:
+    1. ENV var QUESTIONNAIRE (filename without path, e.g., "questions.yaml")
+    2. If only one .yaml file exists in questionnaires/, use it automatically
+    3. If multiple files exist and no ENV var set, return None (error state)
 
     Returns:
-        Tuple of (questions list, settings dict)
+        Path to questionnaire file, or None if configuration is required.
     """
-    # Try relative to script directory first, then current directory
-    script_dir = Path(__file__).parent
-    possible_paths = [
-        script_dir / config_path,
-        Path(config_path),
-    ]
+    # Get all YAML files in questionnaires folder
+    yaml_files = list(QUESTIONNAIRES_DIR.glob("*.yaml")) + list(QUESTIONNAIRES_DIR.glob("*.yml"))
 
-    # Default settings
-    default_settings = {
-        "display_mode": "one_by_one",  # "one_by_one" or "all_at_once"
-        "show_progress_bar": True,
-        "allow_back_navigation": True,
-        "show_question_numbers": True,
-        "require_all_answers": False,
-        "title": "Assessment",
-        "welcome_message": "",
-        "thank_you_message": "Thank you for completing the assessment!",
-    }
-
-    for path in possible_paths:
+    # Priority 1: ENV var
+    env_questionnaire = os.environ.get("QUESTIONNAIRE")
+    if env_questionnaire:
+        path = QUESTIONNAIRES_DIR / env_questionnaire
         if path.exists():
-            logger.info(f"Loading questions from {path}")
-            with open(path, "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
-                questions = config.get("questions", [])
+            logger.info(f"Using questionnaire from ENV: {env_questionnaire}")
+            return path
+        else:
+            logger.error(f"ENV QUESTIONNAIRE '{env_questionnaire}' not found in {QUESTIONNAIRES_DIR}")
+            return None
 
-                # Merge settings with defaults
-                settings = default_settings.copy()
-                yaml_settings = config.get("settings", {})
-                settings.update(yaml_settings)
+    # Priority 2: Single file auto-detection
+    if len(yaml_files) == 1:
+        logger.info(f"Auto-detected single questionnaire: {yaml_files[0].name}")
+        return yaml_files[0]
 
-                logger.info(f"Loaded {len(questions)} questions, display_mode={settings['display_mode']}")
-                return questions, settings
+    # Priority 3: Multiple files without ENV var = error
+    if len(yaml_files) > 1:
+        logger.error(f"Multiple questionnaires found but QUESTIONNAIRE env var not set")
+        return None
 
-    logger.error(f"Questions config file not found: {config_path}")
-    raise FileNotFoundError(f"Questions config file not found: {config_path}")
+    # No files found
+    if not yaml_files:
+        logger.error(f"No questionnaire files found in {QUESTIONNAIRES_DIR}")
+        return None
+
+    return None
+
+
+def load_questions_from_yaml(config_path: Path | str | None = None) -> tuple[list[dict], list[dict], dict] | None:
+    """Load questions configuration and settings from YAML file.
+
+    Args:
+        config_path: Optional path to questionnaire file. If None, auto-detects.
+
+    Returns:
+        Tuple of (intro_questions, main_questions, settings), or None if not configured.
+    """
+    # Determine path if not provided
+    if config_path is None:
+        config_path = get_questionnaire_path()
+        if config_path is None:
+            return None  # Not configured - will show error page
+    elif isinstance(config_path, str):
+        config_path = Path(config_path)
+
+    if not config_path.exists():
+        logger.error(f"Questionnaire not found: {config_path}")
+        return None
+
+    logger.info(f"Loading questions from {config_path}")
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+        # intro_questions are never shuffled (demographics, name, etc.)
+        intro_questions = config.get("intro_questions", [])
+        questions = config.get("questions", [])
+
+        # Get YAML settings
+        yaml_settings = config.get("settings", {})
+
+        # Validate required settings
+        missing = [key for key in REQUIRED_SETTINGS if not yaml_settings.get(key)]
+        if missing:
+            raise ValueError(
+                f"Missing required settings in {config_path.name}: {', '.join(missing)}. "
+                f"Please add these to your YAML settings section."
+            )
+
+        # Merge settings with defaults
+        settings = DEFAULT_SETTINGS.copy()
+        settings.update(yaml_settings)
+
+        total = len(intro_questions) + len(questions)
+        logger.info(f"Loaded {total} questions ({len(intro_questions)} intro + {len(questions)} main), display_mode={settings['display_mode']}")
+        return intro_questions, questions, settings
 
 
 def get_keboola_files_client():
@@ -124,12 +201,13 @@ def load_answers_from_keboola(email: str) -> dict | None:
         return None
 
     target_filename = email_to_filename(email)
-    logger.info(f"Looking for file with tags: {ANSWERS_TAG} + {email}")
+    answers_tag = get_answers_tag()
+    logger.info(f"Looking for file with tags: {answers_tag} + {email}")
 
     try:
         # List files with assessment tag first
-        files_list = files_client.list(tags=[ANSWERS_TAG], limit=1000)
-        logger.info(f"Found {len(files_list)} files with tag {ANSWERS_TAG}")
+        files_list = files_client.list(tags=[answers_tag], limit=1000)
+        logger.info(f"Found {len(files_list)} files with tag {answers_tag}")
 
         # Filter to find files that ALSO have the user's email tag
         for file_info in files_list:
@@ -168,11 +246,12 @@ def load_all_answers_from_keboola() -> list[dict]:
 
     logger.info("Loading all assessment answers for CEO dashboard")
     all_answers = []
+    answers_tag = get_answers_tag()
 
     try:
         # List all files with assessment tag
-        files_list = files_client.list(tags=[ANSWERS_TAG], limit=1000)
-        logger.info(f"Found {len(files_list)} files with tag {ANSWERS_TAG}")
+        files_list = files_client.list(tags=[answers_tag], limit=1000)
+        logger.info(f"Found {len(files_list)} files with tag {answers_tag}")
 
         for file_info in files_list:
             file_id = file_info.get("id")
@@ -181,10 +260,10 @@ def load_all_answers_from_keboola() -> list[dict]:
             # Extract email from tags (second tag should be the email)
             file_tags = file_info.get("tags", [])
             tag_names = [t.get("name") if isinstance(t, dict) else t for t in file_tags]
-            # Find email tag (not the ANSWERS_TAG)
+            # Find email tag (not the answers_tag)
             user_email = None
             for tag in tag_names:
-                if tag != ANSWERS_TAG and "@" in tag:
+                if tag != answers_tag and "@" in tag:
                     user_email = tag
                     break
 
@@ -219,9 +298,10 @@ def delete_existing_file_from_keboola(email: str) -> bool:
     if not files_client:
         return False
 
+    answers_tag = get_answers_tag()
     try:
         # List files with assessment tag
-        files_list = files_client.list(tags=[ANSWERS_TAG], limit=1000)
+        files_list = files_client.list(tags=[answers_tag], limit=1000)
 
         # Find and delete only files that ALSO have the user's email tag
         for file_info in files_list:
@@ -240,8 +320,16 @@ def delete_existing_file_from_keboola(email: str) -> bool:
         return False
 
 
-def save_answers_to_keboola(email: str, answers: dict) -> bool:
-    """Save answers to Keboola Storage as a file with tag."""
+def save_answers_to_keboola(email: str, answers: dict, save_email_tag: bool = True) -> bool:
+    """
+    Save answers to Keboola Storage as a file with tag.
+
+    Args:
+        email: User email (or "anonymous")
+        answers: Dictionary of answers
+        save_email_tag: If True, include email as a tag (for OIDC-authenticated users).
+                       If False, only save with questionnaire tag (anonymous mode).
+    """
     files_client = get_keboola_files_client()
     if not files_client:
         # Fallback to local file
@@ -249,18 +337,22 @@ def save_answers_to_keboola(email: str, answers: dict) -> bool:
         return False
 
     filename = email_to_filename(email)
+    answers_tag = get_answers_tag()
 
     try:
-        # First, delete any existing file for this user
-        delete_existing_file_from_keboola(email)
+        # First, delete any existing file for this user (only if we have email tag)
+        if save_email_tag and email != "anonymous":
+            delete_existing_file_from_keboola(email)
 
         # Create temp file with answers
         with tempfile.TemporaryDirectory() as tmp_dir:
             local_path = os.path.join(tmp_dir, filename)
 
-            # Prepare data
+            # Prepare data - include questionnaire metadata
             data = {
-                "email": email,
+                "email": email if save_email_tag else "anonymous",
+                "questionnaire_id": SETTINGS.get("questionnaire_id", "Assessment"),
+                "questionnaire_version": SETTINGS.get("version", "1"),
                 "submitted_at": datetime.now().isoformat(),
                 "last_updated": datetime.now().isoformat(),
                 "answers": answers
@@ -270,14 +362,21 @@ def save_answers_to_keboola(email: str, answers: dict) -> bool:
             with open(local_path, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            # Upload to Keboola with tags (assessment tag + user email for easy lookup)
+            # Build tags list
+            # - Always include questionnaire tag
+            # - Only include email tag if save_email_tag is True (OIDC authenticated)
+            tags = [answers_tag]
+            if save_email_tag and email != "anonymous":
+                tags.append(email)
+
+            # Upload to Keboola
             result = files_client.upload_file(
                 file_path=local_path,
-                tags=[ANSWERS_TAG, email],
+                tags=tags,
                 is_permanent=True,
                 is_public=False
             )
-            logger.info(f"Saved answers to Keboola: {result}")
+            logger.info(f"Saved answers to Keboola with tags {tags}: {result}")
             return True
 
     except Exception as e:
@@ -376,9 +475,9 @@ def get_debug_headers():
         return {"error": str(e)}
 
 
-# Page config
+# Page config (title is generic since SETTINGS not loaded yet)
 st.set_page_config(
-    page_title="CEO Assessment",
+    page_title="Questionnaire",
     page_icon="📋",
     layout="centered"
 )
@@ -446,12 +545,115 @@ st.markdown("""
         margin-bottom: 12px;
         font-size: 1.1rem;
     }
+
+    /* Sortable items styling for ranking */
+    .sortable-item {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 4px 0;
+        cursor: grab;
+        transition: all 0.2s ease;
+    }
+
+    .sortable-item:hover {
+        background-color: #e9ecef;
+        border-color: #4CAF50;
+    }
+
+    .sortable-item:active {
+        cursor: grabbing;
+        background-color: #d4edda;
+    }
+
+    /* Yes/No buttons styling */
+    div[data-testid="column"] button {
+        font-size: 1.1rem !important;
+        padding: 1rem !important;
+        min-height: 60px !important;
+    }
+
+    /* Stretch horizontal radio buttons to full width */
+    div[data-testid="stRadio"] > div[role="radiogroup"] {
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+
+    div[data-testid="stRadio"] > div[role="radiogroup"] > label {
+        flex: 1 !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 
 # Load questions and settings from YAML configuration file
-QUESTIONS, SETTINGS = load_questions_from_yaml()
+_load_result = load_questions_from_yaml()
+if _load_result is None:
+    # Not configured - will show error page in main()
+    _INTRO_QUESTIONS, _MAIN_QUESTIONS, SETTINGS = [], [], {}
+    QUESTIONNAIRE_NOT_CONFIGURED = True
+else:
+    _INTRO_QUESTIONS, _MAIN_QUESTIONS, SETTINGS = _load_result
+    QUESTIONNAIRE_NOT_CONFIGURED = False
+
+
+def render_configuration_error():
+    """Render error page when questionnaire is not properly configured."""
+    yaml_files = list(QUESTIONNAIRES_DIR.glob("*.yaml")) + list(QUESTIONNAIRES_DIR.glob("*.yml"))
+
+    st.markdown("""
+    <h1 style="text-align: center; color: #d32f2f;">
+        Configuration Required
+    </h1>
+    """, unsafe_allow_html=True)
+
+    if not yaml_files:
+        st.error(f"No questionnaire files found in `{QUESTIONNAIRES_DIR}`")
+        st.markdown("""
+        ### How to fix:
+        1. Create a questionnaire YAML file in the `questionnaires/` folder
+        2. See `questionnaires/questions.instructions.md` for documentation
+        """)
+    else:
+        st.warning("Multiple questionnaires found but none is selected.")
+        st.markdown("### Available questionnaires:")
+
+        for f in sorted(yaml_files):
+            st.code(f.name)
+
+        st.markdown("---")
+        st.markdown("### How to select a questionnaire:")
+        st.markdown("**Option 1:** Set environment variable")
+        st.code(f"QUESTIONNAIRE={yaml_files[0].name} streamlit run app.py", language="bash")
+
+        st.markdown("**Option 2:** Export before running")
+        st.code(f"export QUESTIONNAIRE={yaml_files[0].name}\nstreamlit run app.py", language="bash")
+
+        st.markdown("---")
+        st.info("If you want automatic selection, keep only one `.yaml` file in the `questionnaires/` folder.")
+
+
+def get_questions() -> list:
+    """Get questions list (intro + main, with main optionally randomized per session)."""
+    if not SETTINGS.get("randomize_questions", False):
+        # No randomization - just combine intro + main
+        return _INTRO_QUESTIONS + _MAIN_QUESTIONS
+
+    # Randomize main questions once per session (intro stays at the beginning)
+    if "randomized_main_questions" not in st.session_state:
+        shuffled = _MAIN_QUESTIONS.copy()
+        random.shuffle(shuffled)
+        st.session_state.randomized_main_questions = shuffled
+
+    return _INTRO_QUESTIONS + st.session_state.randomized_main_questions
+
+
+# For backwards compatibility - will be set dynamically in main()
+QUESTIONS = _INTRO_QUESTIONS + _MAIN_QUESTIONS
 TOTAL_QUESTIONS = len(QUESTIONS)
 
 
@@ -516,6 +718,47 @@ def init_widget_state(widget_key: str, answer_key: str):
 def sync_answer(widget_key: str, answer_key: str):
     """Sync widget value back to answers."""
     st.session_state.answers[answer_key] = st.session_state.get(widget_key, "")
+
+
+def get_randomized_options(question_id: int, options: list) -> list:
+    """Get randomized options for a question (consistent within session)."""
+    if not SETTINGS.get("randomize_options", False):
+        return options
+
+    # Use a consistent seed per question per session
+    cache_key = f"randomized_options_{question_id}"
+    if cache_key not in st.session_state:
+        shuffled = options.copy()
+        random.shuffle(shuffled)
+        st.session_state[cache_key] = shuffled
+
+    return st.session_state[cache_key]
+
+
+def trigger_auto_advance():
+    """Trigger auto-advance to next question after a delay."""
+    if not SETTINGS.get("auto_advance", False):
+        return
+    if SETTINGS.get("display_mode") != "one_by_one":
+        return
+
+    delay_ms = SETTINGS.get("auto_advance_delay", 600)
+
+    # JavaScript to auto-advance after delay
+    js_code = f"""
+    <script>
+        setTimeout(function() {{
+            try {{
+                var doc = window.parent.document;
+                var nextBtn = doc.querySelector('button[kind="primary"]');
+                if (nextBtn && nextBtn.textContent.includes('Next')) {{
+                    nextBtn.click();
+                }}
+            }} catch(e) {{}}
+        }}, {delay_ms});
+    </script>
+    """
+    components.html(js_code, height=0)
 
 
 def render_question(question):
@@ -593,7 +836,7 @@ def render_question(question):
     elif q_type == "radio":
         answer_key = get_answer_key(q_id)
         widget_key = f"radio_{q_id}"
-        options = question.get("options", [])
+        options = get_randomized_options(q_id, question.get("options", []))
 
         # Get current value from answers
         current_value = st.session_state.answers.get(answer_key, None)
@@ -612,7 +855,7 @@ def render_question(question):
 
     elif q_type == "checkbox":
         answer_key = get_answer_key(q_id)
-        options = question.get("options", [])
+        options = get_randomized_options(q_id, question.get("options", []))
 
         # Get current selections from answers (stored as comma-separated string or list)
         current_value = st.session_state.answers.get(answer_key, "")
@@ -639,7 +882,7 @@ def render_question(question):
     elif q_type == "select":
         answer_key = get_answer_key(q_id)
         widget_key = f"select_{q_id}"
-        options = question.get("options", [])
+        options = get_randomized_options(q_id, question.get("options", []))
 
         # Get current value
         current_value = st.session_state.answers.get(answer_key, "")
@@ -662,6 +905,46 @@ def render_question(question):
         else:
             st.session_state.answers[answer_key] = ""
         return selected if selected != "-- Select an option --" else ""
+
+    elif q_type == "yes_no":
+        # Simple Yes/No choice (Typeform style)
+        answer_key = get_answer_key(q_id)
+        widget_key = f"yesno_{q_id}"
+
+        yes_label = question.get("yes_label", "Yes")
+        no_label = question.get("no_label", "No")
+
+        # Get current value
+        current_value = st.session_state.answers.get(answer_key, None)
+
+        # Create two big buttons side by side
+        col1, col2 = st.columns(2)
+
+        with col1:
+            yes_selected = current_value == "yes"
+            if st.button(
+                f"👍 {yes_label}",
+                key=f"{widget_key}_yes",
+                use_container_width=True,
+                type="primary" if yes_selected else "secondary"
+            ):
+                st.session_state.answers[answer_key] = "yes"
+                trigger_auto_advance()
+                st.rerun()
+
+        with col2:
+            no_selected = current_value == "no"
+            if st.button(
+                f"👎 {no_label}",
+                key=f"{widget_key}_no",
+                use_container_width=True,
+                type="primary" if no_selected else "secondary"
+            ):
+                st.session_state.answers[answer_key] = "no"
+                trigger_auto_advance()
+                st.rerun()
+
+        return current_value
 
     elif q_type == "slider":
         # Numeric slider with customizable range
@@ -724,7 +1007,8 @@ def render_question(question):
             with col1:
                 st.caption(f"← {min_label}" if min_label else "")
             with col2:
-                st.caption(f"{max_label} →" if max_label else "", help=None)
+                if max_label:
+                    st.markdown(f"<p style='text-align: right; color: #666; font-size: 0.85rem; margin: 0;'>{max_label} →</p>", unsafe_allow_html=True)
 
         selected = st.radio(
             label="Select a value",
@@ -772,6 +1056,7 @@ def render_question(question):
                 btn_label = filled if is_selected else empty
                 if st.button(btn_label, key=f"{widget_key}_{i}", use_container_width=True):
                     st.session_state.answers[answer_key] = rating_val
+                    trigger_auto_advance()
                     st.rerun()
 
         if current_value > 0:
@@ -832,18 +1117,23 @@ def render_question(question):
 
         from datetime import date
 
-        # Get current value
+        # Get current value and parse if string
         current_value = st.session_state.answers.get(answer_key)
-        if current_value:
+        parsed_date = None
+        if current_value and current_value != "":
             try:
                 if isinstance(current_value, str):
-                    current_value = date.fromisoformat(current_value)
-            except ValueError:
-                current_value = None
+                    parsed_date = date.fromisoformat(current_value)
+                elif isinstance(current_value, date):
+                    parsed_date = current_value
+            except (ValueError, TypeError):
+                parsed_date = None
 
         selected = st.date_input(
             label="Select a date",
-            value=current_value,
+            value=parsed_date,
+            min_value=date(1900, 1, 1),
+            max_value=date(2100, 12, 31),
             label_visibility="collapsed",
             key=widget_key
         )
@@ -858,19 +1148,22 @@ def render_question(question):
 
         from datetime import time as dt_time
 
-        # Get current value
+        # Get current value and parse if string
         current_value = st.session_state.answers.get(answer_key)
-        if current_value:
+        parsed_time = None
+        if current_value and current_value != "":
             try:
                 if isinstance(current_value, str):
                     parts = current_value.split(":")
-                    current_value = dt_time(int(parts[0]), int(parts[1]))
-            except (ValueError, IndexError):
-                current_value = None
+                    parsed_time = dt_time(int(parts[0]), int(parts[1]))
+                elif isinstance(current_value, dt_time):
+                    parsed_time = current_value
+            except (ValueError, IndexError, TypeError):
+                parsed_time = None
 
         selected = st.time_input(
             label="Select a time",
-            value=current_value,
+            value=parsed_time,
             label_visibility="collapsed",
             key=widget_key
         )
@@ -981,50 +1274,36 @@ def render_question(question):
         return responses
 
     elif q_type == "ranking":
-        # Ranking question - drag to reorder (simplified version using number inputs)
+        # Ranking question - drag & drop reorder using streamlit-sortables
         answer_key = get_answer_key(q_id)
+        widget_key = f"ranking_{q_id}"
 
         options = question.get("options", [])
+        options = get_randomized_options(q_id, options)
 
-        # Get current ranking from answers
-        current_ranking = st.session_state.answers.get(answer_key, {})
-        if isinstance(current_ranking, str):
-            try:
-                current_ranking = json.loads(current_ranking) if current_ranking else {}
-            except json.JSONDecodeError:
-                current_ranking = {}
+        # Get current order from answers (stored as JSON list)
+        current_order = st.session_state.answers.get(answer_key)
+        if current_order:
+            if isinstance(current_order, str):
+                try:
+                    current_order = json.loads(current_order)
+                except json.JSONDecodeError:
+                    current_order = options
+            # Validate that all options are present
+            if set(current_order) != set(options):
+                current_order = options
+        else:
+            current_order = options
 
-        st.caption("Assign rank numbers (1 = highest priority)")
+        st.caption("☰ Drag items up/down to reorder (top = most important)")
 
-        rankings = {}
-        for option in options:
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write(option)
-            with col2:
-                widget_key = f"rank_{q_id}_{option}"
-                current_val = current_ranking.get(option, 0)
-                rank = st.number_input(
-                    label=f"Rank for {option}",
-                    min_value=0,
-                    max_value=len(options),
-                    value=current_val,
-                    step=1,
-                    key=widget_key,
-                    label_visibility="collapsed"
-                )
-                rankings[option] = rank
+        # Use streamlit-sortables for drag & drop (vertical layout)
+        sorted_items = sort_items(current_order, key=widget_key, direction="vertical")
 
-        # Store as JSON string
-        st.session_state.answers[answer_key] = json.dumps(rankings)
+        # Store as JSON list (ordered from most to least important)
+        st.session_state.answers[answer_key] = json.dumps(sorted_items)
 
-        # Show current order
-        ranked_items = [(k, v) for k, v in rankings.items() if v > 0]
-        ranked_items.sort(key=lambda x: x[1])
-        if ranked_items:
-            st.caption("Current order: " + " → ".join([item[0] for item in ranked_items]))
-
-        return rankings
+        return sorted_items
 
     return None
 
@@ -1128,14 +1407,45 @@ def render_review_page(authenticated_user):
 
 def submit_assessment(authenticated_user):
     """Submit the assessment."""
-    # Get user from OIDC or fallback
-    user_email = authenticated_user or "anonymous"
+    oidc_identity = SETTINGS.get("oidc_identity", False)
 
-    # Save to Keboola Storage
-    save_answers_to_keboola(user_email, st.session_state.answers)
+    # Only save email tag if OIDC identity is enabled AND user is authenticated
+    # Otherwise, save anonymously (no email tag = untrusted source)
+    if oidc_identity and authenticated_user:
+        save_answers_to_keboola(authenticated_user, st.session_state.answers, save_email_tag=True)
+    else:
+        save_answers_to_keboola("anonymous", st.session_state.answers, save_email_tag=False)
 
     st.session_state.submitted = True
     st.rerun()
+
+
+def render_identity_box(authenticated_user: str | None) -> bool:
+    """
+    Render identity box showing user's email from OIDC.
+    Returns True if OIDC identity is active and user is authenticated.
+    """
+    oidc_identity = SETTINGS.get("oidc_identity", False)
+
+    if not oidc_identity:
+        return False
+
+    if authenticated_user:
+        st.markdown(f"""
+        <div style='background-color: #e3f2fd; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border-left: 4px solid #1976d2;'>
+            <strong>Responding as:</strong> {authenticated_user}<br>
+            <span style='color: #666; font-size: 0.9rem;'>Your answers will be saved under this email.</span>
+        </div>
+        """, unsafe_allow_html=True)
+        return True
+    else:
+        st.markdown("""
+        <div style='background-color: #fff3e0; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border-left: 4px solid #ff9800;'>
+            <strong>Anonymous mode</strong><br>
+            <span style='color: #666; font-size: 0.9rem;'>OIDC authentication not detected. Your answers will be saved anonymously.</span>
+        </div>
+        """, unsafe_allow_html=True)
+        return False
 
 
 def render_thank_you():
@@ -1150,12 +1460,17 @@ def render_thank_you():
         {thank_you_msg}
     </div>
     """, unsafe_allow_html=True)
-    st.balloons()
+
+    if SETTINGS.get("show_balloons", True):
+        st.balloons()
 
 
 def render_all_questions(authenticated_user):
     """Render all questions on a single page (all_at_once mode)."""
     user_display = authenticated_user or "there"
+
+    # Identity box (if oidc_identity is enabled)
+    render_identity_box(authenticated_user)
 
     # Welcome message
     welcome_msg = SETTINGS.get("welcome_message", "")
@@ -1277,7 +1592,7 @@ def render_question_body(question):
 
     if q_type == "radio":
         widget_key = f"radio_{q_id}"
-        options = question.get("options", [])
+        options = get_randomized_options(q_id, question.get("options", []))
         current_value = st.session_state.answers.get(answer_key, None)
         current_index = options.index(current_value) if current_value in options else None
 
@@ -1291,7 +1606,7 @@ def render_question_body(question):
         st.session_state.answers[answer_key] = selected
 
     elif q_type == "checkbox":
-        options = question.get("options", [])
+        options = get_randomized_options(q_id, question.get("options", []))
         current_value = st.session_state.answers.get(answer_key, "")
         if isinstance(current_value, str):
             selected_items = [x.strip() for x in current_value.split(",") if x.strip()]
@@ -1308,7 +1623,7 @@ def render_question_body(question):
 
     elif q_type == "select":
         widget_key = f"select_{q_id}"
-        options = question.get("options", [])
+        options = get_randomized_options(q_id, question.get("options", []))
         current_value = st.session_state.answers.get(answer_key, "")
         options_with_placeholder = ["-- Select an option --"] + options
         current_index = options.index(current_value) + 1 if current_value in options else 0
@@ -1324,6 +1639,29 @@ def render_question_body(question):
             st.session_state.answers[answer_key] = selected
         else:
             st.session_state.answers[answer_key] = ""
+
+    elif q_type == "yes_no":
+        # Simple Yes/No choice (Typeform style)
+        widget_key = f"yesno_{q_id}"
+        yes_label = question.get("yes_label", "Yes")
+        no_label = question.get("no_label", "No")
+        current_value = st.session_state.answers.get(answer_key, None)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            yes_selected = current_value == "yes"
+            if st.button(f"👍 {yes_label}", key=f"{widget_key}_yes", use_container_width=True,
+                        type="primary" if yes_selected else "secondary"):
+                st.session_state.answers[answer_key] = "yes"
+                trigger_auto_advance()
+                st.rerun()
+        with col2:
+            no_selected = current_value == "no"
+            if st.button(f"👎 {no_label}", key=f"{widget_key}_no", use_container_width=True,
+                        type="primary" if no_selected else "secondary"):
+                st.session_state.answers[answer_key] = "no"
+                trigger_auto_advance()
+                st.rerun()
 
     elif q_type == "slider":
         widget_key = f"slider_{q_id}"
@@ -1370,7 +1708,8 @@ def render_question_body(question):
             with col1:
                 st.caption(f"← {min_label}" if min_label else "")
             with col2:
-                st.caption(f"{max_label} →" if max_label else "")
+                if max_label:
+                    st.markdown(f"<p style='text-align: right; color: #666; font-size: 0.85rem; margin: 0;'>{max_label} →</p>", unsafe_allow_html=True)
 
         selected = st.radio(
             label="Select a value", options=options, index=current_index,
@@ -1400,6 +1739,7 @@ def render_question_body(question):
                 btn_label = filled if is_selected else empty
                 if st.button(btn_label, key=f"{widget_key}_{i}", use_container_width=True):
                     st.session_state.answers[answer_key] = rating_val
+                    trigger_auto_advance()
                     st.rerun()
 
         if current_value > 0:
@@ -1442,29 +1782,39 @@ def render_question_body(question):
         from datetime import date
         widget_key = f"date_{q_id}"
         current_value = st.session_state.answers.get(answer_key)
-        if current_value:
+        parsed_date = None
+        if current_value and current_value != "":
             try:
                 if isinstance(current_value, str):
-                    current_value = date.fromisoformat(current_value)
-            except ValueError:
-                current_value = None
+                    parsed_date = date.fromisoformat(current_value)
+                elif isinstance(current_value, date):
+                    parsed_date = current_value
+            except (ValueError, TypeError):
+                parsed_date = None
 
-        selected = st.date_input(label="Select a date", value=current_value, label_visibility="collapsed", key=widget_key)
+        selected = st.date_input(
+            label="Select a date", value=parsed_date,
+            min_value=date(1900, 1, 1), max_value=date(2100, 12, 31),
+            label_visibility="collapsed", key=widget_key
+        )
         st.session_state.answers[answer_key] = selected.isoformat() if selected else ""
 
     elif q_type == "time":
         from datetime import time as dt_time
         widget_key = f"time_{q_id}"
         current_value = st.session_state.answers.get(answer_key)
-        if current_value:
+        parsed_time = None
+        if current_value and current_value != "":
             try:
                 if isinstance(current_value, str):
                     parts = current_value.split(":")
-                    current_value = dt_time(int(parts[0]), int(parts[1]))
-            except (ValueError, IndexError):
-                current_value = None
+                    parsed_time = dt_time(int(parts[0]), int(parts[1]))
+                elif isinstance(current_value, dt_time):
+                    parsed_time = current_value
+            except (ValueError, IndexError, TypeError):
+                parsed_time = None
 
-        selected = st.time_input(label="Select a time", value=current_value, label_visibility="collapsed", key=widget_key)
+        selected = st.time_input(label="Select a time", value=parsed_time, label_visibility="collapsed", key=widget_key)
         st.session_state.answers[answer_key] = selected.strftime("%H:%M") if selected else ""
 
     elif q_type == "number":
@@ -1535,34 +1885,27 @@ def render_question_body(question):
                             st.rerun()
 
     elif q_type == "ranking":
+        # Drag & drop ranking using streamlit-sortables
+        widget_key = f"ranking_{q_id}"
         options = question.get("options", [])
-        current_ranking = st.session_state.answers.get(answer_key, {})
-        if isinstance(current_ranking, str):
-            try:
-                current_ranking = json.loads(current_ranking) if current_ranking else {}
-            except json.JSONDecodeError:
-                current_ranking = {}
+        options = get_randomized_options(q_id, options)
 
-        st.caption("Assign rank numbers (1 = highest priority)")
-        rankings = {}
-        for option in options:
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write(option)
-            with col2:
-                widget_key = f"rank_{q_id}_{option}"
-                current_val = current_ranking.get(option, 0)
-                rank = st.number_input(
-                    label=f"Rank for {option}", min_value=0, max_value=len(options),
-                    value=current_val, step=1, key=widget_key, label_visibility="collapsed"
-                )
-                rankings[option] = rank
-        st.session_state.answers[answer_key] = json.dumps(rankings)
+        # Get current order from answers (stored as JSON list)
+        current_order = st.session_state.answers.get(answer_key)
+        if current_order:
+            if isinstance(current_order, str):
+                try:
+                    current_order = json.loads(current_order)
+                except json.JSONDecodeError:
+                    current_order = options
+            if set(current_order) != set(options):
+                current_order = options
+        else:
+            current_order = options
 
-        ranked_items = [(k, v) for k, v in rankings.items() if v > 0]
-        ranked_items.sort(key=lambda x: x[1])
-        if ranked_items:
-            st.caption("Current order: " + " → ".join([item[0] for item in ranked_items]))
+        st.caption("☰ Drag items up/down to reorder (top = most important)")
+        sorted_items = sort_items(current_order, key=widget_key, direction="vertical")
+        st.session_state.answers[answer_key] = json.dumps(sorted_items)
 
 
 def is_ceo(email: str) -> bool:
@@ -1722,17 +2065,29 @@ def render_existing_answers_choice(authenticated_user):
 
 
 def main():
+    global QUESTIONS, TOTAL_QUESTIONS
+
+    # Check if questionnaire is configured
+    if QUESTIONNAIRE_NOT_CONFIGURED:
+        render_configuration_error()
+        return
+
     # Get authenticated user from Keboola OIDC
     authenticated_user = get_authenticated_user()
 
     # Initialize session state (and load existing answers)
     init_session_state(authenticated_user)
 
-    # Header with Material Icon
-    st.markdown("""
+    # Get questions (potentially randomized per session)
+    QUESTIONS = get_questions()
+    TOTAL_QUESTIONS = len(QUESTIONS)
+
+    # Header with Material Icon - use title from settings
+    questionnaire_title = SETTINGS.get("title", "Questionnaire")
+    st.markdown(f"""
     <h1 style="text-align: center; display: flex; align-items: center; justify-content: center; gap: 12px;">
         <span class="material-icons-outlined" style="font-size: 42px; color: #4CAF50;">assignment</span>
-        CEO Assessment
+        {questionnaire_title}
     </h1>
     """, unsafe_allow_html=True)
 
@@ -1776,8 +2131,11 @@ def main():
         return
 
     # === ONE BY ONE MODE ===
-    # Welcome message on first question
+    # Identity box and welcome message on first question
     if st.session_state.current_step == 0:
+        # Identity box (if oidc_identity is enabled)
+        render_identity_box(authenticated_user)
+
         user_display = authenticated_user or "there"
 
         st.markdown(f"""

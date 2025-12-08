@@ -1,0 +1,123 @@
+# yaml-language-server: $schema=questions.schema.json
+# CEO Christmas Review 2025
+# Leadership assessment questionnaire
+
+settings:
+  # ── REQUIRED ──────────────────────────────────
+  questionnaire_id: CEO_Xmass_Review_2025
+  version: "1"
+  title: "CEO Leadership Review 2025"
+
+  # ── DISPLAY ───────────────────────────────────
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+
+  # ── BEHAVIOR ──────────────────────────────────
+  require_all_answers: false
+  randomize_questions: false
+  randomize_options: false
+  auto_advance: false
+  show_balloons: true
+
+  # ── MESSAGES ──────────────────────────────────
+  welcome_message: |
+    <strong>Welcome to the CEO Review 2025!</strong><br><br>
+    This questionnaire is designed for reflection on your contributions and ideas for company growth.
+    Please answer honestly and specifically.
+  thank_you_message: |
+    Thank you for your responses! I truly appreciate your time and openness.
+
+# ── INTRO QUESTIONS (never shuffled) ────────────
+intro_questions:
+- id: 1
+  title: "Your name"
+  type: text_input
+  placeholder: "Enter your full name"
+
+# ── MAIN QUESTIONS ──────────────────────────────
+questions:
+- id: 2
+  title: "What have you shipped in the last 3 weeks that made our customers' lives better?"
+  type: text_area
+
+- id: 3
+  title: "In which areas do you support me so well that I don't have to think about them?"
+  type: text_area
+
+- id: 4
+  title: "What do you excel at?"
+  type: text_area
+
+- id: 5
+  title: "What do your colleagues excel at that you admire or learn from?"
+  type: text_area
+
+- id: 6
+  title: "What bottlenecks with other departments, if cleared, would help you most?"
+  type: text_area
+
+- id: 7
+  title: "If you could magically eliminate 3 activities that cause you the most pain, which would they be?"
+  subtitle: "List 3 specific activities"
+  type: compound
+  subquestions:
+  - key: a
+    label: "Activity #1"
+  - key: b
+    label: "Activity #2"
+  - key: c
+    label: "Activity #3"
+
+- id: 8
+  title: "Self-evaluation"
+  subtitle: "Reflect on your strengths and growth areas"
+  type: compound
+  subquestions:
+  - key: a
+    label: "What are you struggling with? Where could I (CEO) help you improve?"
+  - key: b
+    label: "What are you great at that might be underutilized and could help the company more?"
+
+- id: 9
+  title: "What would you do if you were in my (CEO) role?"
+  subtitle: "Think about different time horizons"
+  type: compound
+  subquestions:
+  - key: a
+    label: "Next 7 days?"
+  - key: b
+    label: "Next 30 days?"
+  - key: c
+    label: "Next 90 days?"
+
+- id: 10
+  title: "Pick any role(s) in the company - what would you do differently if you were in that role?"
+  subtitle: "You can comment on multiple roles"
+  type: text_area
+  placeholder: "Role: ...
+
+    What I would do: ...
+
+
+    Role: ...
+
+    What I would do: ..."
+
+- id: 11
+  title: "What are our top 3 priorities and why?"
+  subtitle: "What outcomes will they bring to customers and revenue?"
+  type: compound
+  subquestions:
+  - key: a
+    label: "Priority #1 (include reasoning and expected impact)"
+  - key: b
+    label: "Priority #2 (include reasoning and expected impact)"
+  - key: c
+    label: "Priority #3 (include reasoning and expected impact)"
+
+- id: 12
+  title: "What is THE single most important priority for the foreseeable future?"
+  subtitle: "The one thing that would have 50%+ impact"
+  type: text_area

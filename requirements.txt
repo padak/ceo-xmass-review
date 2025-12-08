@@ -1,4 +1,5 @@
 streamlit
+streamlit-sortables
 python-dotenv
 pyyaml
 kbcstorage

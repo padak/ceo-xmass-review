@@ -1,0 +1,290 @@
+# yaml-language-server: $schema=questions.schema.json
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEMO QUESTIONNAIRE - Reference Implementation
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This file demonstrates ALL 16 question types available in the questionnaire
+# system. Use it as a template when creating your own surveys!
+#
+# Documentation: See questions.instructions.md for detailed guide
+# Schema:        Validated against questions.schema.json
+#
+# Structure:
+#   1. settings          - Global configuration (display, behavior, messages)
+#   2. intro_questions   - Demographics/identity (NEVER shuffled)
+#   3. questions         - Main survey questions (can be shuffled)
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+settings:
+  # ── REQUIRED FIELDS ──────────────────────────────────────────────────────────
+  # These must be unique per Keboola project!
+  questionnaire_id: Demo_Questionnaire
+  version: "1"
+  title: "Feature Demo Survey"
+
+  # ── IDENTITY ─────────────────────────────────────────────────────────────────
+  # When true: shows identity box with user's email from OIDC proxy
+  # Responses are tagged with email for identification
+  # When false/missing: anonymous mode, no email tag saved
+  oidc_identity: true
+
+  # ── DISPLAY ──────────────────────────────────────────────────────────────────
+  display_mode: all_at_once      # "one_by_one" or "all_at_once"
+  show_progress_bar: true        # Progress bar (one_by_one mode only)
+  allow_back_navigation: true    # Allow going back
+  show_question_numbers: true    # Show Q1, Q2, etc.
+
+  # ── BEHAVIOR ─────────────────────────────────────────────────────────────────
+  require_all_answers: false     # Require all before submit
+  randomize_questions: true      # Shuffle main questions (not intro)
+  randomize_options: false       # Shuffle options in choice questions
+  auto_advance: false            # Auto-advance after selection
+  auto_advance_delay: 600        # Delay before auto-advance (ms)
+  show_balloons: true            # Celebration after submit
+
+  # ── MESSAGES ─────────────────────────────────────────────────────────────────
+  welcome_message: ""
+  thank_you_message: "Thank you for exploring our demo!"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTRO QUESTIONS - Never shuffled
+# Perfect for: name, email, department, demographics
+# ═══════════════════════════════════════════════════════════════════════════════
+intro_questions:
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ TEXT INPUT - Single line text
+  # │ Use for: names, emails, short answers
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 1
+    title: "What's your name?"
+    subtitle: "Single-line text input with placeholder"
+    type: text_input
+    placeholder: "Enter your name..."
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ SELECT - Dropdown menu
+  # │ Use for: long lists (6+ options), departments, countries
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 2
+    title: "What's your role?"
+    subtitle: "Dropdown - great for long option lists"
+    type: select
+    options:
+      - "Developer"
+      - "Designer"
+      - "Product Manager"
+      - "Data Analyst"
+      - "Marketing"
+      - "Sales"
+      - "Customer Support"
+      - "HR"
+      - "Finance"
+      - "Other"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ NUMBER - Numeric input with validation
+  # │ Use for: age, years of experience, quantities
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 3
+    title: "Years of experience in your field?"
+    subtitle: "Number input with min/max validation"
+    type: number
+    min: 0
+    max: 50
+    step: 1
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ DATE - Date picker
+  # │ Use for: birth dates, start dates, deadlines
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 4
+    title: "When did you start your current job?"
+    subtitle: "Date picker (supports dates from 1900)"
+    type: date
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN QUESTIONS - Can be shuffled
+# These demonstrate all remaining question types
+# ═══════════════════════════════════════════════════════════════════════════════
+questions:
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ TEXT AREA - Multi-line text
+  # │ Use for: feedback, descriptions, open-ended questions
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 5
+    title: "What do you enjoy most about your work?"
+    subtitle: "Multi-line text area for longer responses"
+    type: text_area
+    placeholder: "Share your thoughts..."
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ COMPOUND - Multiple related text fields
+  # │ Use for: multi-part questions, structured feedback
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 6
+    title: "Quick self-assessment"
+    subtitle: "Multiple related questions grouped together"
+    type: compound
+    subquestions:
+      - key: a
+        label: "What's your greatest strength?"
+      - key: b
+        label: "What skill would you like to develop?"
+      - key: c
+        label: "What's one goal for this year?"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ RADIO - Single selection (visible options)
+  # │ Use for: 2-5 mutually exclusive options
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 7
+    title: "How do you prefer to work?"
+    subtitle: "Radio buttons - single selection from visible options"
+    type: radio
+    options:
+      - "Fully remote"
+      - "Hybrid (mix of office and remote)"
+      - "Fully in office"
+      - "No preference"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ YES/NO - Binary choice with large buttons
+  # │ Use for: simple yes/no, agree/disagree
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 8
+    title: "Would you recommend this workplace to a friend?"
+    subtitle: "Typeform-style yes/no with customizable labels"
+    type: yes_no
+    yes_label: "Definitely!"
+    no_label: "Not really"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ CHECKBOX - Multiple selection
+  # │ Use for: "select all that apply" questions
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 9
+    title: "Which communication tools do you use?"
+    subtitle: "Checkboxes - select all that apply"
+    type: checkbox
+    options:
+      - "Slack"
+      - "Microsoft Teams"
+      - "Email"
+      - "Zoom"
+      - "Google Meet"
+      - "Phone calls"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ LINEAR SCALE - Numeric scale with labels
+  # │ Use for: satisfaction, agreement, likelihood scales
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 10
+    title: "How satisfied are you with your work-life balance?"
+    subtitle: "Linear scale with labeled endpoints"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Very unsatisfied"
+    max_label: "Very satisfied"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ SLIDER - Draggable continuous value
+  # │ Use for: percentages, ranges, approximate values
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 11
+    title: "What percentage of your day is spent in meetings?"
+    subtitle: "Draggable slider for continuous values"
+    type: slider
+    min: 0
+    max: 100
+    step: 5
+    default: 25
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ RATING - Visual star/emoji rating
+  # │ Use for: quality ratings, satisfaction, quick assessments
+  # │ Icons: star, heart, thumb, fire, smile
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 12
+    title: "Rate your team collaboration"
+    subtitle: "Star rating (1-5)"
+    type: rating
+    max: 5
+    icon: star
+
+  - id: 13
+    title: "How energized do you feel at work?"
+    subtitle: "Rating with fire icon"
+    type: rating
+    max: 5
+    icon: fire
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ NPS - Net Promoter Score (0-10)
+  # │ Use for: standard NPS questions with automatic labeling
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 14
+    title: "How likely are you to recommend our product?"
+    subtitle: "NPS scale (0-10) with Detractor/Passive/Promoter labels"
+    type: nps
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ MATRIX - Grid/table question
+  # │ Use for: rating multiple items on same scale
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 15
+    title: "Rate these aspects of your workplace"
+    subtitle: "Matrix grid - one selection per row"
+    type: matrix
+    multiple: false  # false = radio (one per row), true = checkbox
+    rows:
+      - key: culture
+        label: "Company culture"
+      - key: growth
+        label: "Growth opportunities"
+      - key: tools
+        label: "Tools & equipment"
+      - key: management
+        label: "Management support"
+    columns:
+      - "Poor"
+      - "Fair"
+      - "Good"
+      - "Excellent"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ RANKING - Drag & drop ordering
+  # │ Use for: priority ranking, preference ordering
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 16
+    title: "Rank these benefits by importance to you"
+    subtitle: "Drag & drop to reorder (top = most important)"
+    type: ranking
+    options:
+      - "Health insurance"
+      - "Remote work flexibility"
+      - "Learning & development budget"
+      - "Competitive salary"
+      - "Extra vacation days"
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ TIME - Time picker
+  # │ Use for: schedules, preferred times, availability
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 17
+    title: "What time do you usually start work?"
+    subtitle: "Time picker"
+    type: time
+
+  # ┌─────────────────────────────────────────────────────────────────────────────
+  # │ FINAL OPEN-ENDED
+  # │ Always good to end with an open feedback option
+  # └─────────────────────────────────────────────────────────────────────────────
+  - id: 18
+    title: "Any other feedback?"
+    subtitle: "Open-ended closing question"
+    type: text_area
+    placeholder: "Share anything else on your mind..."
