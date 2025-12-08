@@ -93,6 +93,27 @@ settings:
 
 **Important:** Answers are stored in Keboola with tag `{questionnaire_id}_v{version}`. If two questionnaires use the same ID, their answers will be mixed! Ensure your `questionnaire_id` is unique within your Keboola project.
 
+### Custom Answer Tag (Backwards Compatibility)
+
+If you need to load answers from an older questionnaire that used a different tag format, you can override the auto-generated tag:
+
+```yaml
+settings:
+  questionnaire_id: CEO_Assessment
+  version: "1"
+
+  # Override the default tag ({questionnaire_id}_v{version})
+  # Useful for loading legacy data with different tag format
+  answers_tag: CEO_Assessment_Answers  # optional
+```
+
+**When to use `answers_tag`:**
+- Migrating from an older version of the app that used different tagging
+- Loading responses that were saved with a custom tag
+- Backwards compatibility with existing Keboola Storage data
+
+**Note:** If `answers_tag` is set, it completely replaces the auto-generated `{questionnaire_id}_v{version}` tag.
+
 ### Display Mode
 
 ```yaml
@@ -198,6 +219,9 @@ settings:
   # ── OPTIONAL (with defaults) ────────────────
   # Identity
   oidc_identity: false            # default: false (anonymous mode)
+
+  # Storage (backwards compatibility)
+  answers_tag: ""                 # default: "" (uses {questionnaire_id}_v{version})
 
   # Display
   display_mode: one_by_one        # default: one_by_one
