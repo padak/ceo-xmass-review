@@ -2182,15 +2182,14 @@ def main():
         # Identity box (if oidc_identity is enabled)
         render_identity_box(authenticated_user)
 
-        user_display = authenticated_user or "there"
-
-        st.markdown(f"""
-        <div style='background-color: #e8f5e9; padding: 1rem; border-radius: 10px; margin-bottom: 2rem;'>
-            <strong>Hi {user_display}!</strong><br><br>
-            Thank you for taking the time to share your thoughts.
-            Your honest feedback helps me understand how we can work better together.
-        </div>
-        """, unsafe_allow_html=True)
+        # Welcome message from settings or default
+        welcome_msg = SETTINGS.get("welcome_message", "")
+        if welcome_msg:
+            st.markdown(f"""
+            <div style='background-color: #e8f5e9; padding: 1rem; border-radius: 10px; margin-bottom: 2rem;'>
+                {welcome_msg}
+            </div>
+            """, unsafe_allow_html=True)
 
     # Progress bar
     render_progress_bar()
