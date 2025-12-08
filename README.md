@@ -75,7 +75,7 @@ Open Claude Code in this repository and enter:
 ```
 Create a new questionnaire based on this brief: [your requirements]
 
-Use questionnaires/questions.yaml as a template
+Use questionnaires/demo_questionnaire.yaml as a template
 and questionnaires/questions.instructions.md as documentation
 ```
 
@@ -112,7 +112,7 @@ streamlit run app.py
 ├── app.py                      # Main Streamlit application
 ├── requirements.txt            # Python dependencies
 └── questionnaires/
-    ├── questions.yaml          # Demo questionnaire (all 16 types)
+    ├── demo_questionnaire.yaml  # Demo questionnaire (all 16 types)
     ├── questions.schema.json   # JSON schema for validation
     └── questions.instructions.md  # Documentation for AI
 ```

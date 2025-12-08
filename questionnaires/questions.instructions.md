@@ -2,11 +2,11 @@
 
 This document describes how to generate and modify questionnaire YAML files. Use this guide when creating questionnaires - it covers all available question types, configuration options, and best practices.
 
-> **📋 Reference Implementation:** See `questions.yaml` in this folder for a complete demo questionnaire that showcases all 16 question types with detailed comments. Use it as a template!
+> **📋 Reference Implementation:** See `demo_questionnaire.yaml` in this folder for a complete demo questionnaire that showcases all 16 question types with detailed comments. Use it as a template!
 
 ## 🎯 Quick Reference: Demo Questionnaire
 
-The `questions.yaml` file in this folder is a **live demo** you can run immediately. It demonstrates:
+The `demo_questionnaire.yaml` file in this folder is a **live demo** you can run immediately. It demonstrates:
 
 | Section | What it shows |
 |---------|---------------|
@@ -16,7 +16,7 @@ The `questions.yaml` file in this folder is a **live demo** you can run immediat
 | **questions** | All 14 remaining types with realistic examples |
 
 **To create your own questionnaire:**
-1. Copy `questions.yaml` to a new file (e.g., `my_survey.yaml`)
+1. Copy `demo_questionnaire.yaml` to a new file (e.g., `my_survey.yaml`)
 2. Update `questionnaire_id`, `version`, and `title` in settings
 3. Delete question types you don't need
 4. Customize the remaining questions
@@ -33,7 +33,7 @@ All questionnaire files are stored in the `questionnaires/` folder. The app sele
 **File structure:**
 ```
 questionnaires/
-├── questions.yaml            # Demo questionnaire (reference implementation)
+├── demo_questionnaire.yaml   # Demo questionnaire (reference implementation)
 ├── questions.schema.json     # JSON schema for validation
 ├── questions.instructions.md # This documentation
 ├── employee_survey.yaml      # Your custom questionnaires...
@@ -588,10 +588,10 @@ Validate your YAML against the schema:
 
 ```bash
 # Using ajv-cli
-ajv validate -s questions.schema.json -d questions.yaml
+ajv validate -s questions.schema.json -d demo_questionnaire.yaml
 
 # Using yq + jsonschema (Python)
-yq -o=json questions.yaml | jsonschema -i /dev/stdin questions.schema.json
+yq -o=json demo_questionnaire.yaml | jsonschema -i /dev/stdin questions.schema.json
 ```
 
 ---
@@ -679,7 +679,7 @@ questions:
 
 ## Demo Questionnaire Reference
 
-The `questions.yaml` file contains all 16 question types. Here's the complete map:
+The `demo_questionnaire.yaml` file contains all 16 question types. Here's the complete map:
 
 ### Intro Questions (IDs 1-4) — Never Shuffled
 
