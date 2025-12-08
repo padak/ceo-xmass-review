@@ -627,14 +627,17 @@ def render_configuration_error():
 
         st.markdown("---")
         st.markdown("### How to select a questionnaire:")
-        st.markdown("**Option 1:** Set environment variable")
+
+        st.markdown("**Option 1: Keboola Data App** (production)")
+        st.markdown("In Keboola Data App settings, go to **Secrets** section and add:")
+        st.code(f"QUESTIONNAIRE = {yaml_files[0].name}", language="text")
+        st.caption("The variable will be available as environment variable in the app.")
+
+        st.markdown("**Option 2: Local development**")
         st.code(f"QUESTIONNAIRE={yaml_files[0].name} streamlit run app.py", language="bash")
 
-        st.markdown("**Option 2:** Export before running")
-        st.code(f"export QUESTIONNAIRE={yaml_files[0].name}\nstreamlit run app.py", language="bash")
-
         st.markdown("---")
-        st.info("If you want automatic selection, keep only one `.yaml` file in the `questionnaires/` folder.")
+        st.info("Tip: If you want automatic selection, keep only one `.yaml` file in the `questionnaires/` folder.")
 
 
 def get_questions() -> list:
