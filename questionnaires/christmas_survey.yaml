@@ -7,7 +7,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 settings:
-  questionnaire_id: Christmas_Survey_2024
+  questionnaire_id: Christmas_Survey_2025
   version: "1"
   title: "Christmas Holiday Survey"
 
@@ -30,44 +30,44 @@ intro_questions: []
 
 questions:
 
-  - id: 1
-    title: "Who are you spending the holidays with?"
-    subtitle: "Select all that apply"
-    type: checkbox
-    options:
-      - "Immediate family (parents, siblings)"
-      - "Extended family (grandparents, cousins)"
-      - "Friends"
-      - "Partner"
-      - "Solo - and loving it!"
-      - "Pets count as family, right?"
+- id: 1
+  title: "Who are you spending the holidays with?"
+  subtitle: "Select all that apply"
+  type: checkbox
+  options:
+  - "Immediate family (parents, siblings)"
+  - "Extended family (grandparents, cousins)"
+  - "Friends"
+  - "Partner"
+  - "Solo - and loving it!"
+  - "Pets count as family, right?"
 
-  - id: 2
-    title: "What's your holiday vibe this year?"
-    type: radio
-    options:
-      - "Cozy at home with movies & blankets"
-      - "Active outdoors (skiing, hiking, walks)"
-      - "Party mode - social gatherings galore"
-      - "Escape - traveling somewhere new"
-      - "Working through it (no judgment)"
+- id: 2
+  title: "What's your holiday vibe this year?"
+  type: radio
+  options:
+  - "Cozy at home with movies & blankets"
+  - "Active outdoors (skiing, hiking, walks)"
+  - "Party mode - social gatherings galore"
+  - "Escape - traveling somewhere new"
+  - "Working through it (no judgment)"
 
-  - id: 3
-    title: "How much Christmas cookies will you consume?"
-    subtitle: "Be honest..."
-    type: linear_scale
-    min: 1
-    max: 5
-    min_label: "Diet mode"
-    max_label: "Cookie monster"
+- id: 3
+  title: "How much Christmas cookies will you consume?"
+  subtitle: "Be honest..."
+  type: linear_scale
+  min: 1
+  max: 5
+  min_label: "Diet mode"
+  max_label: "Cookie monster"
 
-  - id: 4
-    title: "Rate your Christmas spirit this year"
-    type: rating
-    max: 5
-    icon: star
+- id: 4
+  title: "Rate your Christmas spirit this year"
+  type: rating
+  max: 5
+  icon: star
 
-  - id: 5
-    title: "One word to describe your ideal holiday moment?"
-    type: text_input
-    placeholder: "e.g., peace, laughter, sleep, food..."
+- id: 5
+  title: "One word to describe your ideal holiday moment?"
+  type: text_input
+  placeholder: "e.g., peace, laughter, sleep, food..."
