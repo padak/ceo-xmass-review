@@ -1,0 +1,298 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# VISUALIZATION CONFIG - Question Type to Chart Mapping
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This file defines how each question type should be visualized in the dashboard.
+# The app reads this config and automatically selects the best visualization.
+#
+# Chart types available:
+#   - horizontal_bar: Horizontal bar chart (good for long labels)
+#   - vertical_bar: Vertical bar chart (good for scales)
+#   - pie: Pie chart (part of whole, <7 categories)
+#   - donut: Donut chart (like pie but with center space for metric)
+#   - gauge: Radial gauge (single value metrics)
+#   - histogram: Distribution of continuous values
+#   - heatmap: 2D matrix visualization
+#   - word_cloud: Text frequency (requires additional library)
+#   - text_list: Simple list of text responses
+#   - stacked_bar: Stacked categories (good for NPS breakdown)
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Default settings
+defaults:
+  color_scheme: "category10"  # Altair color scheme
+  show_labels: true
+  show_tooltips: true
+  animation: true
+
+# Question type visualizations
+question_types:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # SELECTION TYPES (single/multiple choice)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  checkbox:
+    name: "Multiple Choice (Checkbox)"
+    primary_chart: "horizontal_bar"
+    fallback_chart: "vertical_bar"
+    aggregation: "count_each"  # Count each selected option
+    colors:
+      scheme: "greens"
+    options:
+      sort_by: "count"  # count, label, original
+      sort_order: "descending"
+      show_percentage: true
+
+  radio:
+    name: "Single Choice (Radio)"
+    primary_chart: "horizontal_bar"
+    fallback_chart: "pie"
+    aggregation: "count"
+    colors:
+      scheme: "blues"
+    options:
+      sort_by: "count"
+      sort_order: "descending"
+      show_percentage: true
+      # Use pie if <= 5 options
+      use_pie_threshold: 5
+
+  select:
+    name: "Dropdown Select"
+    primary_chart: "horizontal_bar"
+    fallback_chart: "pie"
+    aggregation: "count"
+    colors:
+      scheme: "blues"
+    options:
+      sort_by: "count"
+      sort_order: "descending"
+
+  yes_no:
+    name: "Yes/No"
+    primary_chart: "donut"
+    fallback_chart: "horizontal_bar"
+    aggregation: "count"
+    colors:
+      yes: "#4CAF50"  # Green
+      no: "#F44336"   # Red
+    options:
+      show_percentage: true
+      center_metric: "majority"  # Show majority answer in center
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # SCALE TYPES (numeric ratings)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  linear_scale:
+    name: "Linear Scale"
+    primary_chart: "vertical_bar"
+    secondary_chart: "gauge"  # Show average as gauge
+    aggregation: "distribution"
+    metrics:
+      - average
+      - median
+      - distribution
+    colors:
+      scheme: "goldgreen"  # Low=gold, High=green gradient
+    options:
+      show_all_scale_values: true  # Even if count is 0
+      highlight_average: true
+
+  rating:
+    name: "Star Rating"
+    primary_chart: "vertical_bar"
+    secondary_chart: "gauge"
+    aggregation: "distribution"
+    metrics:
+      - average
+      - distribution
+    colors:
+      scheme: "oranges"
+    options:
+      show_stars: true  # Render as star icons if possible
+      show_all_scale_values: true
+      highlight_average: true
+
+  nps:
+    name: "Net Promoter Score"
+    primary_chart: "nps_gauge"  # Special NPS visualization
+    secondary_chart: "stacked_bar"
+    aggregation: "nps"
+    metrics:
+      - nps_score        # -100 to +100
+      - promoters_pct    # 9-10
+      - passives_pct     # 7-8
+      - detractors_pct   # 0-6
+    colors:
+      promoters: "#4CAF50"   # Green
+      passives: "#FFC107"    # Yellow/Amber
+      detractors: "#F44336"  # Red
+    categories:
+      detractors:
+        min: 0
+        max: 6
+        label: "Detractors"
+      passives:
+        min: 7
+        max: 8
+        label: "Passives"
+      promoters:
+        min: 9
+        max: 10
+        label: "Promoters"
+    options:
+      show_breakdown: true
+      show_benchmark: false  # Could add industry benchmarks later
+
+  slider:
+    name: "Slider"
+    primary_chart: "histogram"
+    secondary_chart: "vertical_bar"
+    aggregation: "distribution"
+    metrics:
+      - average
+      - median
+      - min
+      - max
+      - std_dev
+    colors:
+      scheme: "purples"
+    options:
+      bin_count: "auto"  # or specific number
+
+  number:
+    name: "Number Input"
+    primary_chart: "histogram"
+    secondary_chart: "box_plot"
+    aggregation: "statistics"
+    metrics:
+      - average
+      - median
+      - min
+      - max
+      - std_dev
+    colors:
+      scheme: "teals"
+    options:
+      bin_count: "auto"
+      show_outliers: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # TEXT TYPES
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  text_input:
+    name: "Short Text"
+    primary_chart: "text_list"
+    fallback_chart: "word_cloud"
+    aggregation: "collect"
+    options:
+      max_display: 20
+      show_respondent: true
+      truncate_length: 100
+
+  text_area:
+    name: "Long Text"
+    primary_chart: "text_list"
+    fallback_chart: "word_cloud"
+    aggregation: "collect"
+    options:
+      max_display: 15
+      show_respondent: true
+      truncate_length: 300
+      expandable: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # COMPLEX TYPES
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  compound:
+    name: "Compound (Multiple Sub-questions)"
+    primary_chart: "grouped_text"
+    aggregation: "collect_grouped"
+    options:
+      show_sub_labels: true
+      group_by_subquestion: true
+
+  matrix:
+    name: "Matrix/Grid"
+    primary_chart: "heatmap"
+    fallback_chart: "grouped_bar"
+    aggregation: "matrix"
+    colors:
+      scheme: "viridis"
+    options:
+      show_values: true
+      row_labels: true
+      column_labels: true
+
+  ranking:
+    name: "Ranking/Ordering"
+    primary_chart: "stacked_bar"
+    fallback_chart: "horizontal_bar"
+    aggregation: "rank_score"
+    colors:
+      scheme: "spectral"
+    options:
+      # Score: 1st place = n points, 2nd = n-1, etc.
+      scoring: "position_weighted"
+      show_average_rank: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # DATE/TIME TYPES
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  date:
+    name: "Date"
+    primary_chart: "histogram"
+    fallback_chart: "text_list"
+    aggregation: "date_distribution"
+    colors:
+      scheme: "blues"
+    options:
+      group_by: "month"  # day, week, month, year
+
+  time:
+    name: "Time"
+    primary_chart: "histogram"
+    fallback_chart: "text_list"
+    aggregation: "time_distribution"
+    colors:
+      scheme: "purples"
+    options:
+      group_by: "hour"  # minute, hour
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPECIAL VISUALIZATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+special:
+  # When response count is low
+  low_response_threshold: 3
+  low_response_chart: "text_list"  # Just show raw answers
+
+  # Summary statistics to always show
+  always_show:
+    - response_count
+    - response_rate
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AG GRID CHARTS MAPPING (for Enterprise features)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+ag_charts:
+  # Map our chart types to AG Charts types
+  horizontal_bar: "bar"
+  vertical_bar: "column"
+  pie: "pie"
+  donut: "donut"
+  gauge: "radial-gauge"
+  histogram: "histogram"
+  heatmap: "heatmap"
+  stacked_bar: "stacked-bar"
+  grouped_bar: "grouped-column"
+  line: "line"
+  area: "area"

@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=questions.schema.json
+# ═══════════════════════════════════════════════════════════════════════════════
+# CEO ASSESSMENT - Original Questionnaire
+# ═══════════════════════════════════════════════════════════════════════════════
+# Quarterly self-reflection for leadership team members.
+# Focuses on achievements, strengths, bottlenecks, and strategic priorities.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+settings:
+  questionnaire_id: CEO_Assessment
+  version: "1"
+  title: "CEO Assessment"
+
+  # Backwards compatibility: use old tag format (without _v{version})
+  answers_tag: CEO_Assessment_Answers
+
+  oidc_identity: true
+  display_mode: all_at_once
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+
+  require_all_answers: false
+  randomize_questions: false
+  auto_advance: false
+
+  welcome_message: "Please take a few minutes to reflect on your work and share your thoughts."
+  thank_you_message: "Thank you for your thoughtful responses!"
+
+intro_questions: []
+
+questions:
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ACHIEVEMENTS & IMPACT
+# ─────────────────────────────────────────────────────────────────────────────
+
+- id: 1
+  title: "What have you shipped in the last 3 weeks that made our customers' lives better?"
+  type: text_area
+
+- id: 2
+  title: "In which areas do you support me so well that I don't have to think about them?"
+  type: text_area
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STRENGTHS & LEARNING
+# ─────────────────────────────────────────────────────────────────────────────
+
+- id: 3
+  title: "What do you excel at?"
+  type: text_area
+
+- id: 4
+  title: "What do your colleagues excel at that you admire or learn from?"
+  type: text_area
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BOTTLENECKS & PAIN POINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+- id: 5
+  title: "What bottlenecks with other departments, if cleared, would help you most?"
+  type: text_area
+
+- id: 6
+  title: "If you could magically eliminate 3 activities that cause you the most pain, which would they be?"
+  type: text_area
+  placeholder: "1.\ \n2.\ \n3. "
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SELF-EVALUATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+- id: 7
+  title: "Self-evaluation"
+  subtitle: "Let's reflect on your strengths and growth areas"
+  type: compound
+  subquestions:
+  - key: a
+    label: "What are you struggling with? Where could I (CEO) help you improve?"
+  - key: b
+    label: "What are you great at that might be underutilized and could help the company more?"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STRATEGIC THINKING
+# ─────────────────────────────────────────────────────────────────────────────
+
+- id: 8
+  title: "What would you do if you were in my (CEO) role?"
+  subtitle: "Think about different time horizons"
+  type: compound
+  subquestions:
+  - key: a
+    label: "Next 7 days?"
+  - key: b
+    label: "Next 30 days?"
+  - key: c
+    label: "Next 90 days?"
+
+- id: 9
+  title: "Pick any role(s) in the company - what would you do differently if you were in that role?"
+  subtitle: "You can comment on multiple roles"
+  type: text_area
+  placeholder: "Role: ...
+
+    What I would do: ...
+
+
+    Role: ...
+
+    What I would do: ..."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRIORITIES
+# ─────────────────────────────────────────────────────────────────────────────
+
+- id: 10
+  title: "What are our top 3 priorities and why?"
+  subtitle: "What outcomes will they bring to customers and revenue?"
+  type: text_area
+  placeholder: "1. Priority: ... Why: ... Outcome: ...
+
+
+    2. Priority: ... Why: ... Outcome: ...
+
+
+    3. Priority: ... Why: ... Outcome: ..."
+
+- id: 11
+  title: "What is THE single most important priority for the foreseeable future?"
+  subtitle: "The one thing that would have 50%+ impact"
+  type: text_area

@@ -1,0 +1,233 @@
+# yaml-language-server: $schema=questions.schema.json
+# ═══════════════════════════════════════════════════════════════════════════════
+# USER DISCOVERY INTERVIEW - Jobs / Pains / Gains Framework
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Based on the UDI methodology for understanding user needs:
+# - Jobs: What tasks do users perform daily?
+# - Pains: What frustrates them or wastes their time?
+# - Gains: What does success look like for them?
+# - Gain Creators: What new capabilities does the product enable?
+# - Pain Relievers: What problems has the product solved?
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+settings:
+  questionnaire_id: User_Discovery_Interview
+  version: "1"
+  title: "User Discovery Interview"
+
+  # Identity
+  oidc_identity: true
+
+  # Display
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+
+  # Behavior
+  require_all_answers: false
+  randomize_questions: false      # Keep logical flow: Jobs -> Pains -> Gains
+  randomize_options: false
+  auto_advance: false
+  show_balloons: true
+
+  # Messages
+  welcome_message: "This survey helps us understand your daily work and how we can better support you. Your honest feedback is invaluable."
+  thank_you_message: "Thank you for sharing your insights! Your feedback helps us build better products."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTRO - Role identification
+# ═══════════════════════════════════════════════════════════════════════════════
+intro_questions:
+
+  - id: 1
+    title: "What is your primary role?"
+    subtitle: "Select the option that best describes your position"
+    type: select
+    options:
+      - "Data Analyst"
+      - "Data Engineer"
+      - "Data Scientist"
+      - "BI Developer"
+      - "Analytics Manager"
+      - "Head of Data"
+      - "Product Manager"
+      - "Software Engineer"
+      - "Marketing Analyst"
+      - "Finance Analyst"
+      - "Operations"
+      - "Executive"
+      - "Other"
+
+  - id: 2
+    title: "How long have you been using Keboola?"
+    type: select
+    options:
+      - "Less than 3 months"
+      - "3-6 months"
+      - "6-12 months"
+      - "1-2 years"
+      - "More than 2 years"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUP 1: JOBS - Understanding daily tasks and workflows
+# ═══════════════════════════════════════════════════════════════════════════════
+questions:
+
+  - id: 3
+    title: "Describe your average workday"
+    subtitle: "What specific tasks related to your role do you do on a typical day?"
+    type: text_area
+    placeholder: "Walk us through your typical day..."
+
+  - id: 4
+    title: "What are you currently working on?"
+    subtitle: "Describe your main project or focus area right now"
+    type: text_area
+    placeholder: "Tell us about your current priorities..."
+
+  - id: 5
+    title: "What task takes the most time to complete?"
+    subtitle: "Think about recurring tasks that consume significant hours"
+    type: text_area
+    placeholder: "Describe the most time-consuming task..."
+
+  - id: 6
+    title: "Which resources do you use to help you do your job?"
+    subtitle: "Websites, tools, documentation, communities, etc."
+    type: text_area
+    placeholder: "List the resources you rely on..."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUP 2: PAINS - Understanding frustrations and obstacles
+# ═══════════════════════════════════════════════════════════════════════════════
+
+  - id: 7
+    title: "What task do you least enjoy doing?"
+    subtitle: "Be honest - what part of your job do you dread?"
+    type: text_area
+    placeholder: "Describe the task you dislike most..."
+
+  - id: 8
+    title: "What would you have done if you didn't have Keboola?"
+    subtitle: "How would you solve your data challenges without it?"
+    type: text_area
+    placeholder: "Describe alternative approaches you would use..."
+
+  - id: 9
+    title: "If you had a magic wand, what task would disappear from your workday?"
+    subtitle: "What would you eliminate if you could?"
+    type: text_area
+    placeholder: "The one thing I'd make disappear is..."
+
+  - id: 10
+    title: "What's the hardest part of your job?"
+    subtitle: "What challenges do you face regularly?"
+    type: text_area
+    placeholder: "Describe your biggest challenges..."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUP 3: GAINS - Understanding success metrics and aspirations
+# ═══════════════════════════════════════════════════════════════════════════════
+
+  - id: 11
+    title: "How do you measure your success at work?"
+    subtitle: "What metrics or outcomes define success for you?"
+    type: text_area
+    placeholder: "I know I'm successful when..."
+
+  - id: 12
+    title: "What would make you really successful at getting your work done?"
+    subtitle: "What tools, processes, or support would help?"
+    type: text_area
+    placeholder: "I would be more successful if..."
+
+  - id: 13
+    title: "How would you define your professional success?"
+    subtitle: "What's your vision and what's needed to get there?"
+    type: text_area
+    placeholder: "My professional success means..."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUP 4: GAIN CREATORS - What new capabilities does Keboola enable?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+  - id: 14
+    title: "What can you finally do with Keboola that you couldn't before?"
+    subtitle: "New capabilities that weren't possible previously"
+    type: text_area
+    placeholder: "Now I can finally..."
+
+  - id: 15
+    title: "What functionality brings you the most value and why?"
+    subtitle: "Which features do you find most impactful?"
+    type: text_area
+    placeholder: "The most valuable feature for me is..."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUP 5: PAIN RELIEVERS - What problems has Keboola solved?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+  - id: 16
+    title: "What are two things you don't need to do anymore because of Keboola?"
+    subtitle: "Tasks that have been eliminated or automated"
+    type: compound
+    subquestions:
+      - key: a
+        label: "First thing I no longer need to do"
+      - key: b
+        label: "Second thing I no longer need to do"
+
+  - id: 17
+    title: "What's the number one problem you have solved by using Keboola?"
+    subtitle: "The biggest pain point that's now resolved"
+    type: text_area
+    placeholder: "The biggest problem Keboola solved for me is..."
+
+  - id: 18
+    title: "What can you do much easier or effortlessly with Keboola?"
+    subtitle: "Tasks that used to be difficult but are now simple"
+    type: text_area
+    placeholder: "It's now so much easier to..."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GROUP 6: OVERALL ASSESSMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+  - id: 19
+    title: "How likely are you to recommend Keboola to a colleague?"
+    subtitle: "Based on your overall experience"
+    type: nps
+
+  - id: 20
+    title: "What would we need to do for Keboola to be a 10 for you?"
+    subtitle: "What improvements or additions would make it perfect?"
+    type: text_area
+    placeholder: "To be a 10, Keboola would need to..."
+
+  - id: 21
+    title: "What are we great at - better than anyone else?"
+    subtitle: "Where does Keboola really shine?"
+    type: text_area
+    placeholder: "Keboola is best at..."
+
+  - id: 22
+    title: "If you were having coffee with our CEO, what would you say?"
+    subtitle: "Your honest message to leadership"
+    type: text_area
+    placeholder: "I would tell the CEO..."
+
+  - id: 23
+    title: "What's one thing that surprised you since you started using Keboola?"
+    subtitle: "Unexpected discoveries - positive or negative"
+    type: text_area
+    placeholder: "I was surprised that..."
+
+  - id: 24
+    title: "Would you be open to a follow-up conversation?"
+    subtitle: "We'd love to learn more about your experience"
+    type: yes_no
+    yes_label: "Yes, happy to chat"
+    no_label: "No thanks"

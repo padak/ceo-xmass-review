@@ -2,9 +2,11 @@
 .venv/
 venv/
 env/
+.claude/
 
 # Environment variables (contains secrets)
 .env
+padak-test-251e97eb3434.json
 
 # Data directories
 data/

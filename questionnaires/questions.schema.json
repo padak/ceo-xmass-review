@@ -1,0 +1,272 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "questions.schema.json",
+  "title": "CEO Assessment Questions Configuration",
+  "description": "Schema for defining questionnaire questions in the CEO Assessment app",
+  "type": "object",
+  "properties": {
+    "settings": {
+      "$ref": "#/definitions/settings"
+    },
+    "intro_questions": {
+      "type": "array",
+      "description": "Intro questions that are never shuffled (demographics, name, etc.)",
+      "items": {
+        "$ref": "#/definitions/question"
+      }
+    },
+    "questions": {
+      "type": "array",
+      "description": "Main questions (can be shuffled if randomize_questions is true)",
+      "items": {
+        "$ref": "#/definitions/question"
+      }
+    }
+  },
+  "required": ["settings"],
+  "anyOf": [
+    { "required": ["questions"] },
+    { "required": ["intro_questions"] }
+  ],
+  "definitions": {
+    "settings": {
+      "type": "object",
+      "description": "Questionnaire behavior settings",
+      "required": ["questionnaire_id", "version", "title"],
+      "properties": {
+        "questionnaire_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_]+$",
+          "description": "Technical ID for this questionnaire (used in Keboola Storage tags). Must be unique per project. Use naming convention: {Team}_{Purpose}_{Year}"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version string for tracking changes (e.g., '1', '2.0')"
+        },
+        "display_mode": {
+          "type": "string",
+          "enum": ["one_by_one", "all_at_once"],
+          "description": "one_by_one = wizard style, all_at_once = single page"
+        },
+        "show_progress_bar": {
+          "type": "boolean",
+          "description": "Show progress bar (one_by_one mode only)"
+        },
+        "allow_back_navigation": {
+          "type": "boolean",
+          "description": "Allow going back to previous questions"
+        },
+        "show_question_numbers": {
+          "type": "boolean",
+          "description": "Show question numbers (Q1, Q2, etc.)"
+        },
+        "require_all_answers": {
+          "type": "boolean",
+          "description": "Require all questions before submit"
+        },
+        "randomize_questions": {
+          "type": "boolean",
+          "description": "Shuffle question order (only 'questions', not 'intro_questions')"
+        },
+        "randomize_options": {
+          "type": "boolean",
+          "description": "Shuffle options in choice questions"
+        },
+        "auto_advance": {
+          "type": "boolean",
+          "description": "Auto-advance after selection (single-choice types only)"
+        },
+        "auto_advance_delay": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Delay in ms before auto-advancing"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display title for the assessment (shown to users)"
+        },
+        "welcome_message": {
+          "type": "string",
+          "description": "Welcome message (HTML allowed)"
+        },
+        "thank_you_message": {
+          "type": "string",
+          "description": "Thank you message after submission"
+        },
+        "show_balloons": {
+          "type": "boolean",
+          "description": "Show balloons animation after submission (default: true)"
+        }
+      }
+    },
+    "question": {
+      "type": "object",
+      "required": ["id", "title", "type"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Unique question identifier"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The main question text"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Helper text below the title"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "text_input",
+            "text_area",
+            "compound",
+            "radio",
+            "checkbox",
+            "select",
+            "yes_no",
+            "linear_scale",
+            "slider",
+            "rating",
+            "nps",
+            "matrix",
+            "ranking",
+            "date",
+            "time",
+            "number"
+          ],
+          "description": "Type of input widget"
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text (text_input, text_area)"
+        },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2,
+          "description": "Options for radio, checkbox, select, ranking"
+        },
+        "subquestions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/subquestion" },
+          "minItems": 1,
+          "description": "Sub-questions for compound type"
+        },
+        "yes_label": {
+          "type": "string",
+          "description": "Custom Yes label (yes_no type)"
+        },
+        "no_label": {
+          "type": "string",
+          "description": "Custom No label (yes_no type)"
+        },
+        "min": {
+          "type": "number",
+          "description": "Minimum value (linear_scale, slider, number)"
+        },
+        "max": {
+          "type": "number",
+          "description": "Maximum value (linear_scale, slider, number, rating)"
+        },
+        "min_label": {
+          "type": "string",
+          "description": "Label for minimum value (linear_scale)"
+        },
+        "max_label": {
+          "type": "string",
+          "description": "Label for maximum value (linear_scale)"
+        },
+        "step": {
+          "type": "number",
+          "description": "Step increment (slider, number)"
+        },
+        "default": {
+          "type": "number",
+          "description": "Default value (slider)"
+        },
+        "icon": {
+          "type": "string",
+          "enum": ["star", "heart", "thumb", "fire", "smile"],
+          "description": "Icon type for rating"
+        },
+        "multiple": {
+          "type": "boolean",
+          "description": "Allow multiple selections per row (matrix)"
+        },
+        "rows": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/matrixRow" },
+          "description": "Row definitions for matrix"
+        },
+        "columns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Column labels for matrix"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "radio" } } },
+          "then": { "required": ["options"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "checkbox" } } },
+          "then": { "required": ["options"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "select" } } },
+          "then": { "required": ["options"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "ranking" } } },
+          "then": { "required": ["options"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "compound" } } },
+          "then": { "required": ["subquestions"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "matrix" } } },
+          "then": { "required": ["rows", "columns"] }
+        }
+      ]
+    },
+    "subquestion": {
+      "type": "object",
+      "required": ["key", "label"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z]$",
+          "description": "Single lowercase letter identifier"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Sub-question text"
+        }
+      }
+    },
+    "matrixRow": {
+      "type": "object",
+      "required": ["key", "label"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Row identifier for answer storage"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Row label displayed to user"
+        }
+      }
+    }
+  }
+}

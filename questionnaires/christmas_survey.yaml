@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=questions.schema.json
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHRISTMAS HOLIDAY SURVEY - Quick & Fun
+# ═══════════════════════════════════════════════════════════════════════════════
+# A 1-minute survey about how you spend the holiday season.
+# Perfect for testing the questionnaire app with multiple responses.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+settings:
+  questionnaire_id: Christmas_Survey_2025
+  version: "1"
+  title: "Christmas Holiday Survey"
+
+  oidc_identity: true
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: false
+
+  require_all_answers: false
+  randomize_questions: false
+  auto_advance: true
+  auto_advance_delay: 500
+  show_balloons: true
+
+  welcome_message: "Quick survey about your holiday plans! Takes less than 1 minute."
+  thank_you_message: "Thanks! Enjoy your holidays!"
+
+intro_questions: []
+
+questions:
+
+- id: 1
+  title: "Who are you spending the holidays with?"
+  subtitle: "Select all that apply"
+  type: checkbox
+  options:
+  - "Immediate family (parents, siblings)"
+  - "Extended family (grandparents, cousins)"
+  - "Friends"
+  - "Partner"
+  - "Solo - and loving it!"
+  - "Pets count as family, right?"
+
+- id: 2
+  title: "What's your holiday vibe this year?"
+  type: radio
+  options:
+  - "Cozy at home with movies & blankets"
+  - "Active outdoors (skiing, hiking, walks)"
+  - "Party mode - social gatherings galore"
+  - "Escape - traveling somewhere new"
+  - "Working through it (no judgment)"
+
+- id: 3
+  title: "How much Christmas cookies will you consume?"
+  subtitle: "Be honest..."
+  type: linear_scale
+  min: 1
+  max: 5
+  min_label: "Diet mode"
+  max_label: "Cookie monster"
+
+- id: 4
+  title: "Rate your Christmas spirit this year"
+  type: rating
+  max: 5
+  icon: star
+
+- id: 5
+  title: "One word to describe your ideal holiday moment?"
+  type: text_input
+  placeholder: "e.g., peace, laughter, sleep, food..."
