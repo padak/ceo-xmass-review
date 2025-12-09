@@ -16,14 +16,8 @@ settings:
   require_all_answers: false
   show_balloons: true
   oidc_identity: false
-  welcome_message: |
-    <h2>Ahoj!</h2>
-    <p>Tento dotaznik sbira feedback na <strong>Pavla Chocholouse (Chocha)</strong>.</p>
-    <p>Tvoje odpovedi jsou <strong>zcela anonymni</strong> - nikdo neuvidi, kdo co napsal.</p>
-    <p>Bud uprimny/a, at uz mas na srdci pochvalu, nebo konstruktivni kritiku. Diky!</p>
-  thank_you_message: |
-    Dekujeme za tvuj feedback!
-    Tvoje odpovedi byly ulozeny anonymne.
+  welcome_message: "<strong>Ahoj!</strong><br><br>Tento dotaznik sbira feedback na <strong>Pavla Chocholouse (Chocha)</strong>.<br><br>Tvoje odpovedi jsou <strong>zcela anonymni</strong> - nikdo neuvidi, kdo co napsal.<br><br>Bud uprimny/a, at uz mas na srdci pochvalu, nebo konstruktivni kritiku. Diky!"
+  thank_you_message: "Dekujeme za tvuj feedback! Tvoje odpovedi byly ulozeny anonymne."
 
 # Uvodni otazky - nikdy se nemicha poradi
 intro_questions:
