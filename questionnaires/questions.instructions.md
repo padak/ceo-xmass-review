@@ -171,11 +171,30 @@ settings:
 settings:
   title: "CEO Assessment"
 
-  # Shown at the start (HTML allowed)
-  welcome_message: "<strong>Welcome!</strong> Please answer honestly."
+  # Shown at the start (inline HTML allowed)
+  welcome_message: "<strong>Welcome!</strong><br><br>Please answer honestly."
 
   # Shown after submission
   thank_you_message: "Thank you for completing the assessment!"
+```
+
+**Important HTML guidelines:**
+- Use **inline HTML only**: `<strong>`, `<em>`, `<br>`, `<a href="...">`
+- Use `<br><br>` for paragraph breaks
+- **Do NOT use block-level HTML**: `<h1>`-`<h6>`, `<p>`, `<div>` - these cause rendering issues
+- **Do NOT use YAML multiline strings** (`|` or `>`). Always use single-line quoted strings.
+
+**Good example:**
+```yaml
+welcome_message: "<strong>Hello!</strong><br><br>This survey is <em>anonymous</em>.<br><br>Be honest!"
+```
+
+**Bad example (will break):**
+```yaml
+# DON'T do this - block HTML and multiline string cause </div> to appear as text
+welcome_message: |
+  <h2>Hello!</h2>
+  <p>This survey is anonymous.</p>
 ```
 
 ### Celebration
