@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=questions.schema.json
+# Feedback dotaznik pro Pavla Chocholouse (Chocho)
+# Anonymni pruzkum - pracovni, osobni i jine aspekty
+
+settings:
+  questionnaire_id: Chocho_Feedback_2024
+  version: "1"
+  title: "Feedback pro Chocha"
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+  randomize_questions: false
+  randomize_options: false
+  auto_advance: false
+  require_all_answers: false
+  show_balloons: true
+  oidc_identity: false
+  welcome_message: |
+    <h2>Ahoj!</h2>
+    <p>Tento dotaznik sbira feedback na <strong>Pavla Chocholouse (Chocha)</strong>.</p>
+    <p>Tvoje odpovedi jsou <strong>zcela anonymni</strong> - nikdo neuvidi, kdo co napsal.</p>
+    <p>Bud uprimny/a, at uz mas na srdci pochvalu, nebo konstruktivni kritiku. Diky!</p>
+  thank_you_message: |
+    Dekujeme za tvuj feedback!
+    Tvoje odpovedi byly ulozeny anonymne.
+
+# Uvodni otazky - nikdy se nemicha poradi
+intro_questions:
+  - id: 1
+    title: "Jak dlouho znas Chocha?"
+    subtitle: "Priblizne, nemusi byt presne"
+    type: select
+    options:
+      - "Mene nez rok"
+      - "1-2 roky"
+      - "3-5 let"
+      - "Vic nez 5 let"
+      - "Zname se cele veky"
+
+  - id: 2
+    title: "V jakem vztahu s Chochem primarne jsi?"
+    subtitle: "Vyber nejblizsi variantu"
+    type: radio
+    options:
+      - "Pracuji s nim v tymu"
+      - "Jsem jeho nadrizeny/a"
+      - "Je muj nadrizeny"
+      - "Spolupracujeme na projektech"
+      - "Jsme pratele/kolegyve mimo praci"
+      - "Vsechno dohromady"
+
+# Hlavni otazky
+questions:
+  # Pracovni cast
+  - id: 3
+    title: "Jak hodnotis Chochovy pracovni schopnosti?"
+    subtitle: "Celkovy dojem z jeho prace"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Potrebuje zlepsit"
+    max_label: "Naprosto skvely"
+
+  - id: 4
+    title: "V cem je Chocho v praci nejlepsi?"
+    subtitle: "Vyber vsechny, ktere sedi"
+    type: checkbox
+    options:
+      - "Technicke dovednosti"
+      - "Komunikace"
+      - "Reseni problemu"
+      - "Spoluprace v tymu"
+      - "Leadership"
+      - "Kreativita a napady"
+      - "Spolehlivost a dodrzovani terminu"
+      - "Pomoc druhym"
+      - "Pozitivni energie"
+
+  - id: 5
+    title: "Kdy je Chocho v praci uplne v zivlu?"
+    subtitle: "Kdy ho vidis zarit?"
+    type: text_area
+    placeholder: "Napis situaci nebo typ ulohy, kdy je Chocho ve sve sile..."
+
+  - id: 6
+    title: "Co by mohl Chocho v praci zlepsit?"
+    subtitle: "Konstruktivni feedback - bud konkretni"
+    type: text_area
+    placeholder: "Tady muzes byt uprimny/a..."
+
+  # Osobni cast
+  - id: 7
+    title: "Jake 3 slova te napadnou, kdyz se rekne 'Chocho'?"
+    type: compound
+    subtitle: "Prvni asociace, nerozmyslej to moc"
+    subquestions:
+      - key: a
+        label: "Slovo 1"
+      - key: b
+        label: "Slovo 2"
+      - key: c
+        label: "Slovo 3"
+
+  - id: 8
+    title: "Jak moc je Chocho zabavny?"
+    subtitle: "Stupnice legrace"
+    type: rating
+    max: 5
+    icon: smile
+
+  - id: 9
+    title: "Sel/sla bys s Chochem na pivo (nebo jine osvezeni)?"
+    type: yes_no
+    yes_label: "Jasne!"
+    no_label: "Spis ne"
+
+  - id: 10
+    title: "Co te na Chochovi nejvic bavi nebo co na nem ocemujes?"
+    subtitle: "Muze byt cokoliv - pracovni i osobni"
+    type: text_area
+    placeholder: "Napis, co te napadne..."
+
+  - id: 11
+    title: "Jak by ses citil/a, kdyby Chocho zitra odchazal z firmy?"
+    type: radio
+    options:
+      - "Katastrofa, to nesmi!"
+      - "Hodne by mi chybel"
+      - "Bylo by to skoda"
+      - "Mrzelo by me to, ale zvladli bychom to"
+      - "Asi bych to moc neresil/a"
+
+  # Zaverecna cast
+  - id: 12
+    title: "Doporucil/a bys Chocha jako kolegu nebo sefa?"
+    subtitle: "Klasicke NPS - jak moc bys ho doporucil/a"
+    type: nps
+
+  - id: 13
+    title: "Co bys Chochovi vzkázal/a, kdyby to mel cist az za rok?"
+    subtitle: "Vzkaz do budoucna - muze byt vazny i vtipny"
+    type: text_area
+    placeholder: "Drahy Chocho, za rok si precti, ze..."
+
+  - id: 14
+    title: "Je neco, co jsme se nezeptali a chces to dodat?"
+    subtitle: "Cokoliv dalsiho k tematu Chocho"
+    type: text_area
+    placeholder: "Volne pole pro cokoliv dalsiho..."
