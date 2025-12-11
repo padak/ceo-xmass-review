@@ -7,7 +7,8 @@ settings:
   questionnaire_id: Engineering_English_Satisfaction
   version: "1"
   title: "Spokojenost s výukou angličtiny"
-  display_mode: one_by_one
+  #display_mode: one_by_one
+  display_mode: all_at_once
   oidc_identity: true
   show_progress_bar: true
   allow_back_navigation: true
