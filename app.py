@@ -2355,7 +2355,7 @@ def render_checkbox_chart(question: dict, answers: list, viz_config: dict):
     # Horizontal bar chart
     chart = alt.Chart(df).mark_bar().encode(
         x=alt.X("Count:Q", title="Responses"),
-        y=alt.Y("Option:N", sort="-x", title=None),
+        y=alt.Y("Option:N", sort="-x", title=None, axis=alt.Axis(labelLimit=400)),
         color=alt.Color("Count:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
         tooltip=["Option", "Count", alt.Tooltip("Percentage:Q", format=".1f", title="% of respondents")]
     ).properties(
@@ -2414,7 +2414,7 @@ def render_selection_chart(question: dict, answers: list, viz_config: dict):
     else:
         chart = alt.Chart(df).mark_bar().encode(
             x=alt.X("Count:Q", title="Responses"),
-            y=alt.Y("Option:N", sort="-x", title=None),
+            y=alt.Y("Option:N", sort="-x", title=None, axis=alt.Axis(labelLimit=400)),
             color=alt.Color("Count:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
             tooltip=["Option", "Count", alt.Tooltip("Percentage:Q", format=".1f", title="%")]
         ).properties(
@@ -2728,7 +2728,7 @@ def render_ranking_chart(question: dict, answers: list, viz_config: dict):
 
     chart = alt.Chart(df).mark_bar().encode(
         x=alt.X("Score:Q", title="Total Score"),
-        y=alt.Y("Item:N", sort="-x", title=None),
+        y=alt.Y("Item:N", sort="-x", title=None, axis=alt.Axis(labelLimit=400)),
         color=alt.Color("Score:Q", scale=alt.Scale(scheme=color_scheme), legend=None),
         tooltip=["Item", "Score", "Responses"]
     ).properties(
