@@ -6,6 +6,7 @@ import tempfile
 import logging
 import io
 import random
+import uuid
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
@@ -249,20 +250,31 @@ def get_keboola_files_client():
 
 
 def email_to_filename(email: str) -> str:
-    """Convert email to safe filename. e.g., petr@keboola.com -> petr_keboola.com.json"""
-    if not email:
-        return "anonymous.json"
+    """Convert email to safe filename. e.g., petr@keboola.com -> petr_keboola.com.json
+
+    For anonymous users, generates unique filename with UUID to prevent overwrites.
+    """
+    if not email or email == "anonymous":
+        # Generate unique ID for anonymous responses
+        unique_id = uuid.uuid4().hex[:12]
+        return f"anonymous_{unique_id}.json"
     # Replace @ with _ and keep the rest
     safe_name = email.replace("@", "_")
     return f"{safe_name}.json"
 
 
 def filename_to_email(filename: str) -> str:
-    """Convert filename back to email. e.g., petr_keboola.com.json -> petr@keboola.com"""
+    """Convert filename back to email. e.g., petr_keboola.com.json -> petr@keboola.com
+
+    For anonymous files (anonymous_*.json), returns "anonymous".
+    """
     if not filename:
         return ""
     # Remove .json extension
     name = filename.replace(".json", "")
+    # Check for anonymous files (anonymous_<uuid>)
+    if name.startswith("anonymous_") or name == "anonymous":
+        return "anonymous"
     # Find the first underscore and replace with @
     parts = name.split("_", 1)
     if len(parts) == 2:
