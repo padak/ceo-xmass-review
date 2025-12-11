@@ -8,6 +8,7 @@ settings:
   version: "1"
   title: "Spokojenost s výukou angličtiny"
   display_mode: one_by_one
+  oidc_identity: true
   show_progress_bar: true
   allow_back_navigation: true
   show_question_numbers: true
@@ -16,338 +17,338 @@ settings:
   auto_advance: false
   require_all_answers: false
   show_balloons: true
-  welcome_message: "<strong>Dotazník spokojenosti s výukou angličtiny</strong><br><br>Děkujeme, že si najdeš pár minut na sdílení svých zkušeností s našimi lekcemi angličtiny. Tvoje upřímná zpětná vazba nám pomůže pochopit, co funguje dobře a co bychom mohli zlepšit.<br><br>Dotazník je anonymní a zabere přibližně 5-7 minut."
-  thank_you_message: "Děkujeme za tvou zpětnou vazbu! Tvůj názor je pro nás cenným podkladem pro zlepšení výuky angličtiny."
+  welcome_message: "<strong>Dotazník spokojenosti s výukou angličtiny</strong><br><br>Díky, že si najdeš pár minut na sdílení svých zkušeností s Keboola lekcemi angličtiny. Chci vyhodnotit vaší zkušenost a zjistit, jestli jsou témata, která vylepšit.<br><br>"
+  thank_you_message: "Díky za tvou zpětnou vazbu! Jen co se sejdou odpovědi od většiny, pošlu vám data. Padák"
 
 # Úvodní otázky - demografie a základní info (nikdy se nemíchají)
 intro_questions:
-  - id: 1
-    title: "Jak dlouho se účastníš lekcí angličtiny?"
-    type: select
-    options:
-      - "Méně než 1 měsíc"
-      - "1-3 měsíce"
-      - "3-6 měsíců"
-      - "6-12 měsíců"
-      - "Více než 1 rok"
-      - "Přestal/a jsem chodit"
+- id: 1
+  title: "Jak dlouho se účastníš lekcí angličtiny?"
+  type: select
+  options:
+  - "Méně než 1 měsíc"
+  - "1-3 měsíce"
+  - "3-6 měsíců"
+  - "6-12 měsíců"
+  - "Více než 1 rok"
+  - "Přestal/a jsem chodit"
 
-  - id: 2
-    title: "Jak pravidelně se účastníš lekcí?"
-    subtitle: "Zamysli se nad posledním měsícem"
-    type: radio
-    options:
-      - "Téměř vždy (90%+ účast)"
-      - "Často (60-90% účast)"
-      - "Občas (30-60% účast)"
-      - "Zřídka (méně než 30% účast)"
-      - "Přestal/a jsem chodit"
+- id: 2
+  title: "Jak pravidelně se účastníš lekcí?"
+  subtitle: "Zamysli se nad posledním měsícem"
+  type: radio
+  options:
+  - "Téměř vždy (90%+ účast)"
+  - "Často (60-90% účast)"
+  - "Občas (30-60% účast)"
+  - "Zřídka (méně než 30% účast)"
+  - "Přestal/a jsem chodit"
 
-  - id: 3
-    title: "Pokud jsi omezil/a svou účast nebo přestal/a chodit, jaké byly hlavní důvody?"
-    subtitle: "Vyber vše, co se tě týká. Pokud se tě to netýká, přeskoč."
-    type: checkbox
-    options:
-      - "Časové kolize s prací"
-      - "Lekce nejsou dostatečně poutavé"
-      - "Technické problémy během lekcí"
-      - "Tempo je pro mě příliš pomalé"
-      - "Tempo je pro mě příliš rychlé"
-      - "Preferuji samostudium"
-      - "Složení skupiny mi nevyhovuje"
-      - "Nevidím dostatečný pokrok"
-      - "Jiné priority"
-      - "Netýká se mě - chodím pravidelně"
+- id: 3
+  title: "Pokud jsi omezil/a svou účast nebo přestal/a chodit, jaké byly hlavní důvody?"
+  subtitle: "Vyber vše, co se tě týká. Pokud se tě to netýká, přeskoč."
+  type: checkbox
+  options:
+  - "Časové kolize s prací"
+  - "Lekce nejsou dostatečně poutavé"
+  - "Technické problémy během lekcí"
+  - "Tempo je pro mě příliš pomalé"
+  - "Tempo je pro mě příliš rychlé"
+  - "Preferuji samostudium"
+  - "Složení skupiny mi nevyhovuje"
+  - "Nevidím dostatečný pokrok"
+  - "Jiné priority"
+  - "Netýká se mě - chodím pravidelně"
 
 # Hlavní otázky - prozkoumání všech aspektů
 questions:
-  # === HODNOCENÍ LEKTORA ===
-  - id: 4
-    title: "Jak celkově hodnotíš svého lektora/lektorku?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Velmi nespokojen/a"
-    max_label: "Velmi spokojen/a"
+# === HODNOCENÍ LEKTORA ===
+- id: 4
+  title: "Jak celkově hodnotíš svého lektora/lektorku?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Velmi nespokojen/a"
+  max_label: "Velmi spokojen/a"
 
-  - id: 5
-    title: "Ohodnoť prosím následující aspekty svého lektora/lektorky"
-    subtitle: "Vyber jedno hodnocení na řádek"
-    type: matrix
-    multiple: false
-    rows:
-      - key: language_skills
-        label: "Jazyková úroveň a odbornost"
-      - key: teaching_methods
-        label: "Výukové metody a přístup"
-      - key: engagement
-        label: "Schopnost udělat lekce zajímavé"
-      - key: responsiveness
-        label: "Reakce na dotazy a zpětnou vazbu"
-      - key: preparation
-        label: "Příprava lekcí a materiály"
-      - key: time_management
-        label: "Práce s časem během lekcí"
-    columns:
-      - "Špatné"
-      - "Ujde to"
-      - "Dobré"
-      - "Výborné"
-      - "Nemohu posoudit"
+- id: 5
+  title: "Ohodnoť prosím následující aspekty svého lektora/lektorky"
+  subtitle: "Vyber jedno hodnocení na řádek"
+  type: matrix
+  multiple: false
+  rows:
+  - key: language_skills
+    label: "Jazyková úroveň a odbornost"
+  - key: teaching_methods
+    label: "Výukové metody a přístup"
+  - key: engagement
+    label: "Schopnost udělat lekce zajímavé"
+  - key: responsiveness
+    label: "Reakce na dotazy a zpětnou vazbu"
+  - key: preparation
+    label: "Příprava lekcí a materiály"
+  - key: time_management
+    label: "Práce s časem během lekcí"
+  columns:
+  - "Špatné"
+  - "Ujde to"
+  - "Dobré"
+  - "Výborné"
+  - "Nemohu posoudit"
 
-  - id: 6
-    title: "Co na svém lektorovi/lektorce nejvíc oceňuješ?"
-    type: text_area
-    placeholder: "Napiš, co funguje dobře..."
+- id: 6
+  title: "Co na svém lektorovi/lektorce nejvíc oceňuješ?"
+  type: text_area
+  placeholder: "Napiš, co funguje dobře..."
 
-  - id: 7
-    title: "V čem by se mohl/a tvůj lektor/lektorka zlepšit?"
-    type: text_area
-    placeholder: "Sdílej konstruktivní návrhy..."
+- id: 7
+  title: "V čem by se mohl/a tvůj lektor/lektorka zlepšit?"
+  type: text_area
+  placeholder: "Sdílej konstruktivní návrhy..."
 
-  # === TECHNICKÁ KVALITA ===
-  - id: 8
-    title: "Jak hodnotíš technickou kvalitu online lekcí?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Velmi špatná"
-    max_label: "Vynikající"
+# === TECHNICKÁ KVALITA ===
+- id: 8
+  title: "Jak hodnotíš technickou kvalitu online lekcí?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Velmi špatná"
+  max_label: "Vynikající"
 
-  - id: 9
-    title: "Jak často zažíváš tyto technické problémy?"
-    type: matrix
-    multiple: false
-    rows:
-      - key: audio_quality
-        label: "Problémy s kvalitou zvuku (echo, šum)"
-      - key: video_quality
-        label: "Problémy s kvalitou videa"
-      - key: connection_drops
-        label: "Výpadky připojení nebo zamrzání"
-      - key: delay
-        label: "Zpoždění zvuku/videa ztěžující konverzaci"
-      - key: screen_sharing
-        label: "Problémy se sdílením obrazovky nebo materiály"
-      - key: instructor_tech
-        label: "Technické potíže lektora/lektorky"
-    columns:
-      - "Nikdy"
-      - "Zřídka"
-      - "Občas"
-      - "Často"
-      - "Téměř vždy"
+- id: 9
+  title: "Jak často zažíváš tyto technické problémy?"
+  type: matrix
+  multiple: false
+  rows:
+  - key: audio_quality
+    label: "Problémy s kvalitou zvuku (echo, šum)"
+  - key: video_quality
+    label: "Problémy s kvalitou videa"
+  - key: connection_drops
+    label: "Výpadky připojení nebo zamrzání"
+  - key: delay
+    label: "Zpoždění zvuku/videa ztěžující konverzaci"
+  - key: screen_sharing
+    label: "Problémy se sdílením obrazovky nebo materiály"
+  - key: instructor_tech
+    label: "Technické potíže lektora/lektorky"
+  columns:
+  - "Nikdy"
+  - "Zřídka"
+  - "Občas"
+  - "Často"
+  - "Téměř vždy"
 
-  - id: 10
-    title: "Jak moc technické problémy ovlivňují tvou zkušenost s výukou?"
-    type: radio
-    options:
-      - "Vůbec ne - vše funguje hladce"
-      - "Minimálně - občasné problémy, ale zvládnutelné"
-      - "Středně - problémy jsou rušivé"
-      - "Výrazně - vážně to ovlivňuje učení"
-      - "Velmi výrazně - lekce jsou frustrující"
+- id: 10
+  title: "Jak moc technické problémy ovlivňují tvou zkušenost s výukou?"
+  type: radio
+  options:
+  - "Vůbec ne - vše funguje hladce"
+  - "Minimálně - občasné problémy, ale zvládnutelné"
+  - "Středně - problémy jsou rušivé"
+  - "Výrazně - vážně to ovlivňuje učení"
+  - "Velmi výrazně - lekce jsou frustrující"
 
-  # === FORMÁT A STRUKTURA LEKCÍ ===
-  - id: 11
-    title: "Jak jsi spokojen/a se současným formátem lekcí?"
-    subtitle: "Aktuálně: 2x týdně, 1 hodina online v malých skupinkách"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Velmi nespokojen/a"
-    max_label: "Velmi spokojen/a"
+# === FORMÁT A STRUKTURA LEKCÍ ===
+- id: 11
+  title: "Jak jsi spokojen/a se současným formátem lekcí?"
+  subtitle: "Aktuálně: 2x týdně, 1 hodina online v malých skupinkách"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Velmi nespokojen/a"
+  max_label: "Velmi spokojen/a"
 
-  - id: 12
-    title: "Jaká je tvoje ideální frekvence lekcí angličtiny?"
-    type: radio
-    options:
-      - "Jednou týdně (méně než teď)"
-      - "Dvakrát týdně (jako teď)"
-      - "Třikrát týdně"
-      - "Denně krátké lekce"
-      - "Flexibilní/na vyžádání"
+- id: 12
+  title: "Jaká je tvoje ideální frekvence lekcí angličtiny?"
+  type: radio
+  options:
+  - "Jednou týdně (méně než teď)"
+  - "Dvakrát týdně (jako teď)"
+  - "Třikrát týdně"
+  - "Denně krátké lekce"
+  - "Flexibilní/na vyžádání"
 
-  - id: 13
-    title: "Jaká je tvoje preferovaná délka lekce?"
-    type: radio
-    options:
-      - "30 minut"
-      - "45 minut"
-      - "60 minut (jako teď)"
-      - "90 minut"
-      - "Různě podle aktivity"
+- id: 13
+  title: "Jaká je tvoje preferovaná délka lekce?"
+  type: radio
+  options:
+  - "30 minut"
+  - "45 minut"
+  - "60 minut (jako teď)"
+  - "90 minut"
+  - "Různě podle aktivity"
 
-  - id: 14
-    title: "Jak jsi spokojen/a se současnou velikostí a složením své skupiny?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Velmi nespokojen/a"
-    max_label: "Velmi spokojen/a"
+- id: 14
+  title: "Jak jsi spokojen/a se současnou velikostí a složením své skupiny?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Velmi nespokojen/a"
+  max_label: "Velmi spokojen/a"
 
-  - id: 15
-    title: "Jaký formát skupiny bys preferoval/a?"
-    type: radio
-    options:
-      - "Individuální lekce (1:1 s lektorem)"
-      - "Velmi malá skupina (2-3 lidé)"
-      - "Malá skupina (4-6 lidí)"
-      - "Střední skupina (7-10 lidí)"
-      - "Mix formátů podle aktivity"
+- id: 15
+  title: "Jaký formát skupiny bys preferoval/a?"
+  type: radio
+  options:
+  - "Individuální lekce (1:1 s lektorem)"
+  - "Velmi malá skupina (2-3 lidé)"
+  - "Malá skupina (4-6 lidí)"
+  - "Střední skupina (7-10 lidí)"
+  - "Mix formátů podle aktivity"
 
-  # === ZPŮSOB VÝUKY ===
-  - id: 16
-    title: "O jaké formy výuky bys měl/a zájem?"
-    subtitle: "Vyber vše, co tě zajímá"
-    type: checkbox
-    options:
-      - "Online lekce (současný formát)"
-      - "Prezenční lekce v kanceláři"
-      - "Hybridní (mix online a prezenčně)"
-      - "Samostudium online kurzy"
-      - "Neformální konverzační praxe (např. oběd, káva)"
-      - "Společenské akce v angličtině (např. hospoda, hry)"
-      - "Workshopy nebo projektová výuka v angličtině"
-      - "Jazyková výměna s rodilými mluvčími"
+# === ZPŮSOB VÝUKY ===
+- id: 16
+  title: "O jaké formy výuky bys měl/a zájem?"
+  subtitle: "Vyber vše, co tě zajímá"
+  type: checkbox
+  options:
+  - "Online lekce (současný formát)"
+  - "Prezenční lekce v kanceláři"
+  - "Hybridní (mix online a prezenčně)"
+  - "Samostudium online kurzy"
+  - "Neformální konverzační praxe (např. oběd, káva)"
+  - "Společenské akce v angličtině (např. hospoda, hry)"
+  - "Workshopy nebo projektová výuka v angličtině"
+  - "Jazyková výměna s rodilými mluvčími"
 
-  - id: 17
-    title: "Pokud by byly nabízeny prezenční nebo společenské aktivity, jak pravděpodobně bys se zúčastnil/a?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Velmi nepravděpodobně"
-    max_label: "Velmi pravděpodobně"
+- id: 17
+  title: "Pokud by byly nabízeny prezenční nebo společenské aktivity, jak pravděpodobně bys se zúčastnil/a?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Velmi nepravděpodobně"
+  max_label: "Velmi pravděpodobně"
 
-  # === OBSAH A KURIKULUM ===
-  - id: 18
-    title: "Jak relevantní je obsah lekcí pro tvou práci?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Nerelevantní"
-    max_label: "Velmi relevantní"
+# === OBSAH A KURIKULUM ===
+- id: 18
+  title: "Jak relevantní je obsah lekcí pro tvou práci?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Nerelevantní"
+  max_label: "Velmi relevantní"
 
-  - id: 19
-    title: "Jaké typy obsahu by pro tebe byly nejcennější?"
-    subtitle: "Seřaď od nejdůležitějšího (nahoře) po nejméně důležité"
-    type: ranking
-    options:
-      - "Obecná obchodní angličtina"
-      - "Technická/IT slovní zásoba"
-      - "Prezentační dovednosti"
-      - "Emaily a písemná komunikace"
-      - "Meetingy a vyjednávání"
-      - "Běžná konverzace"
-      - "Gramatika a přesnost"
-      - "Výslovnost a plynulost"
+- id: 19
+  title: "Jaké typy obsahu by pro tebe byly nejcennější?"
+  subtitle: "Seřaď od nejdůležitějšího (nahoře) po nejméně důležité"
+  type: ranking
+  options:
+  - "Obecná obchodní angličtina"
+  - "Technická/IT slovní zásoba"
+  - "Prezentační dovednosti"
+  - "Emaily a písemná komunikace"
+  - "Meetingy a vyjednávání"
+  - "Běžná konverzace"
+  - "Gramatika a přesnost"
+  - "Výslovnost a plynulost"
 
-  - id: 20
-    title: "Jaká témata nebo dovednosti v lekcích aktuálně chybí?"
-    type: text_area
-    placeholder: "Napiš, co bys rád/a přidal/a..."
+- id: 20
+  title: "Jaká témata nebo dovednosti v lekcích aktuálně chybí?"
+  type: text_area
+  placeholder: "Napiš, co bys rád/a přidal/a..."
 
-  # === POKROK A VÝSLEDKY ===
-  - id: 21
-    title: "Jaký pokrok jsi udělal/a ve svých jazykových dovednostech?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Žádný pokrok"
-    max_label: "Výrazný pokrok"
+# === POKROK A VÝSLEDKY ===
+- id: 21
+  title: "Jaký pokrok jsi udělal/a ve svých jazykových dovednostech?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Žádný pokrok"
+  max_label: "Výrazný pokrok"
 
-  - id: 22
-    title: "V jakých oblastech jsi zaznamenal/a největší zlepšení?"
-    subtitle: "Vyber vše, co platí"
-    type: checkbox
-    options:
-      - "Sebejistota v mluvení"
-      - "Porozumění poslechu"
-      - "Slovní zásoba"
-      - "Gramatická správnost"
-      - "Výslovnost"
-      - "Psaní"
-      - "Profesní komunikace"
-      - "Nezaznamenal/a jsem výrazné zlepšení"
+- id: 22
+  title: "V jakých oblastech jsi zaznamenal/a největší zlepšení?"
+  subtitle: "Vyber vše, co platí"
+  type: checkbox
+  options:
+  - "Sebejistota v mluvení"
+  - "Porozumění poslechu"
+  - "Slovní zásoba"
+  - "Gramatická správnost"
+  - "Výslovnost"
+  - "Psaní"
+  - "Profesní komunikace"
+  - "Nezaznamenal/a jsem výrazné zlepšení"
 
-  - id: 23
-    title: "Co by ti pomohlo k většímu pokroku?"
-    subtitle: "Vyber vše, co platí"
-    type: checkbox
-    options:
-      - "Více praxe v mluvení"
-      - "Více individuální pozornosti"
-      - "Lepší materiály"
-      - "Více domácích úkolů/zdrojů pro samostudium"
-      - "Jasnější učební cíle"
-      - "Častější lekce"
-      - "Jiný výukový přístup"
-      - "Praxe s rodilými mluvčími"
-      - "Reálné projekty v angličtině"
+- id: 23
+  title: "Co by ti pomohlo k většímu pokroku?"
+  subtitle: "Vyber vše, co platí"
+  type: checkbox
+  options:
+  - "Více praxe v mluvení"
+  - "Více individuální pozornosti"
+  - "Lepší materiály"
+  - "Více domácích úkolů/zdrojů pro samostudium"
+  - "Jasnější učební cíle"
+  - "Častější lekce"
+  - "Jiný výukový přístup"
+  - "Praxe s rodilými mluvčími"
+  - "Reálné projekty v angličtině"
 
-  # === OČEKÁVÁNÍ A HODNOTA ===
-  - id: 24
-    title: "Jak dobře lekce naplňují tvoje očekávání?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Výrazně pod očekáváním"
-    max_label: "Výrazně nad očekáváním"
+# === OČEKÁVÁNÍ A HODNOTA ===
+- id: 24
+  title: "Jak dobře lekce naplňují tvoje očekávání?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Výrazně pod očekáváním"
+  max_label: "Výrazně nad očekáváním"
 
-  - id: 25
-    title: "Jaká byla tvoje hlavní očekávání, když jsi začínal/a kurz?"
-    type: text_area
-    placeholder: "Čeho jsi chtěl/a dosáhnout?"
+- id: 25
+  title: "Jaká byla tvoje hlavní očekávání, když jsi začínal/a kurz?"
+  type: text_area
+  placeholder: "Čeho jsi chtěl/a dosáhnout?"
 
-  - id: 26
-    title: "Co by pro tebe lekce angličtiny výrazně zhodnotilo?"
-    type: text_area
-    placeholder: "Sdílej své nápady..."
+- id: 26
+  title: "Co by pro tebe lekce angličtiny výrazně zhodnotilo?"
+  type: text_area
+  placeholder: "Sdílej své nápady..."
 
-  # === PREFERENCE LEKTORA ===
-  - id: 27
-    title: "Jak důležité je pro tebe, aby lektor/lektorka byl/a rodilý mluvčí?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Není důležité"
-    max_label: "Velmi důležité"
+# === PREFERENCE LEKTORA ===
+- id: 27
+  title: "Jak důležité je pro tebe, aby lektor/lektorka byl/a rodilý mluvčí?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Není důležité"
+  max_label: "Velmi důležité"
 
-  - id: 28
-    title: "Jaké vlastnosti jsou pro tebe u lektora angličtiny nejdůležitější?"
-    subtitle: "Seřaď od nejdůležitější (nahoře) po nejméně důležitou"
-    type: ranking
-    options:
-      - "Rodilý mluvčí"
-      - "Zkušenosti s výukou"
-      - "Porozumění technice/IT"
-      - "Poutavá osobnost"
-      - "Spolehlivá technika a dochvilnost"
-      - "Flexibilita v obsahu lekcí"
-      - "Profesní certifikace (TEFL, CELTA, apod.)"
+- id: 28
+  title: "Jaké vlastnosti jsou pro tebe u lektora angličtiny nejdůležitější?"
+  subtitle: "Seřaď od nejdůležitější (nahoře) po nejméně důležitou"
+  type: ranking
+  options:
+  - "Rodilý mluvčí"
+  - "Zkušenosti s výukou"
+  - "Porozumění technice/IT"
+  - "Poutavá osobnost"
+  - "Spolehlivá technika a dochvilnost"
+  - "Flexibilita v obsahu lekcí"
+  - "Profesní certifikace (TEFL, CELTA, apod.)"
 
-  # === CELKOVÁ SPOKOJENOST & NPS ===
-  - id: 29
-    title: "Celkově, jak jsi spokojen/a s programem výuky angličtiny?"
-    type: linear_scale
-    min: 1
-    max: 10
-    min_label: "Velmi nespokojen/a"
-    max_label: "Velmi spokojen/a"
+# === CELKOVÁ SPOKOJENOST & NPS ===
+- id: 29
+  title: "Celkově, jak jsi spokojen/a s programem výuky angličtiny?"
+  type: linear_scale
+  min: 1
+  max: 10
+  min_label: "Velmi nespokojen/a"
+  max_label: "Velmi spokojen/a"
 
-  - id: 30
-    title: "Jak pravděpodobně bys doporučil/a tyto lekce angličtiny kolegovi?"
-    type: nps
+- id: 30
+  title: "Jak pravděpodobně bys doporučil/a tyto lekce angličtiny kolegovi?"
+  type: nps
 
-  # === ZÁVĚREČNÁ OTEVŘENÁ ZPĚTNÁ VAZBA ===
-  - id: 31
-    title: "Závěrečné myšlenky"
-    subtitle: "Sdílej prosím jakoukoli další zpětnou vazbu, návrhy nebo připomínky"
-    type: compound
-    subquestions:
-      - key: a
-        label: "Co funguje dobře a rozhodně by mělo pokračovat?"
-      - key: b
-        label: "Co je ta jedna nejdůležitější věc, kterou bychom měli zlepšit?"
-      - key: c
-        label: "Jakékoli další komentáře nebo návrhy?"
+# === ZÁVĚREČNÁ OTEVŘENÁ ZPĚTNÁ VAZBA ===
+- id: 31
+  title: "Závěrečné myšlenky"
+  subtitle: "Sdílej prosím jakoukoli další zpětnou vazbu, návrhy nebo připomínky"
+  type: compound
+  subquestions:
+  - key: a
+    label: "Co funguje dobře a rozhodně by mělo pokračovat?"
+  - key: b
+    label: "Co je ta jedna nejdůležitější věc, kterou bychom měli zlepšit?"
+  - key: c
+    label: "Jakékoli další komentáře nebo návrhy?"
