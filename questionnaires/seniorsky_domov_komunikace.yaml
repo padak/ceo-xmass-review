@@ -1,0 +1,361 @@
+# yaml-language-server: $schema=questions.schema.json
+# Dotaznik kvality komunikace a pracovniho prostredi - Seniorsky domov
+# Anonymni pruzkum pro zamestnance
+
+settings:
+  questionnaire_id: SeniorDomov_Komunikace_2024
+  version: "1"
+  title: "Průzkum pracovního prostředí a komunikace"
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+  randomize_questions: true
+  randomize_options: false
+  require_all_answers: false
+  auto_advance: false
+  show_balloons: true
+  oidc_identity: false
+  welcome_message: "<strong>Vážená kolegyně, vážený kolego,</strong><br><br>děkujeme, že si najdete čas na vyplnění tohoto dotazníku. Vaše odpovědi nám pomohou lépe porozumět pracovnímu prostředí a najít oblasti, kde se můžeme zlepšit.<br><br>Dotazník je <strong>zcela anonymní</strong> - nikde neuvádíte své jméno a odpovědi nelze spojit s konkrétní osobou.<br><br>Odpovídejte prosím upřímně podle svých skutečných zkušeností."
+  thank_you_message: "Děkujeme za vyplnění dotazníku! Vaše zpětná vazba je pro nás velmi cenná."
+
+intro_questions:
+  - id: 1
+    title: "V jakém oddělení pracujete?"
+    subtitle: "Vyberte oddělení, které nejlépe odpovídá vaší hlavní pracovní náplni"
+    type: select
+    options:
+      - "Přímá péče (pečovatelky, ošetřovatelky)"
+      - "Zdravotní služby (zdravotní sestry)"
+      - "Stravování (kuchyň, jídelna)"
+      - "Úklid a údržba"
+      - "Administrativa a recepce"
+      - "Sociální služby"
+      - "Management a vedení"
+      - "Jiné"
+
+  - id: 2
+    title: "Jak dlouho v tomto zařízení pracujete?"
+    type: select
+    options:
+      - "Méně než 6 měsíců"
+      - "6 měsíců až 1 rok"
+      - "1-3 roky"
+      - "3-5 let"
+      - "5-10 let"
+      - "Více než 10 let"
+
+questions:
+  # === KOMUNIKACE S NADŘÍZENÝMI ===
+  - id: 3
+    title: "Jak hodnotíte komunikaci s vaším přímým nadřízeným?"
+    subtitle: "Myslíme tím osobu, které přímo podléháte"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Velmi špatná"
+    max_label: "Výborná"
+
+  - id: 4
+    title: "Jak často dostáváte zpětnou vazbu na svou práci od nadřízeného?"
+    type: radio
+    options:
+      - "Pravidelně (alespoň 1x týdně)"
+      - "Občas (několikrát za měsíc)"
+      - "Zřídka (několikrát za rok)"
+      - "Téměř nikdy"
+      - "Nemám potřebu zpětné vazby"
+
+  - id: 5
+    title: "Když máte pracovní problém nebo dotaz, můžete se obrátit na nadřízeného?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Vůbec ne, necítím se bezpečně"
+    max_label: "Ano, kdykoli bez obav"
+
+  - id: 6
+    title: "Jak byste popsali styl vedení vašeho přímého nadřízeného?"
+    subtitle: "Vyberte všechny možnosti, které odpovídají vaší zkušenosti"
+    type: checkbox
+    options:
+      - "Podporující a pomáhající"
+      - "Respektující názory zaměstnanců"
+      - "Direktivní (říká co a jak dělat)"
+      - "Delegující (nechává prostor pro vlastní rozhodování)"
+      - "Kontrolující (často prověřuje práci)"
+      - "Nedostupný/á (těžko k zastižení)"
+      - "Spravedlivý/á ke všem"
+      - "Zvýhodňující některé kolegy"
+
+  # === TÝMOVÁ SPOLUPRÁCE ===
+  - id: 7
+    title: "Jak hodnotíte spolupráci ve vašem týmu/oddělení?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Velmi špatná"
+    max_label: "Výborná"
+
+  - id: 8
+    title: "Jak hodnotíte spolupráci mezi různými odděleními?"
+    subtitle: "Např. mezi péčí a kuchyní, mezi sestrami a pečovatelkami apod."
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Velmi špatná"
+    max_label: "Výborná"
+
+  - id: 9
+    title: "Jak se cítíte jako součást pracovního kolektivu?"
+    type: radio
+    options:
+      - "Velmi dobře, cítím se být součástí týmu"
+      - "Spíše dobře"
+      - "Neutrálně"
+      - "Spíše špatně"
+      - "Špatně, cítím se izolovaně"
+
+  # === PRACOVNÍ PODMÍNKY ===
+  - id: 10
+    title: "Jak hodnotíte svou aktuální pracovní zátěž?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Příliš nízká (mám málo práce)"
+    max_label: "Příliš vysoká (nestíhám)"
+
+  - id: 11
+    title: "Máte dostatek času na kvalitní výkon své práce?"
+    type: radio
+    options:
+      - "Ano, vždy"
+      - "Většinou ano"
+      - "Někdy ano, někdy ne"
+      - "Většinou ne"
+      - "Ne, nikdy nemám dostatek času"
+
+  - id: 12
+    title: "Jak hodnotíte personální obsazení ve vašem oddělení?"
+    subtitle: "Je dostatek kolegů na zvládnutí práce?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Zcela nedostatečné"
+    max_label: "Plně dostačující"
+
+  - id: 13
+    title: "Máte k dispozici vše potřebné pro kvalitní výkon práce?"
+    subtitle: "Pomůcky, materiál, vybavení, informace"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Ne, chybí mi základní věci"
+    max_label: "Ano, mám vše potřebné"
+
+  # === AUTONOMIE A ROZHODOVÁNÍ ===
+  - id: 14
+    title: "Jak velký prostor máte pro vlastní rozhodování v rámci své práce?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Žádný, vše je předepsáno"
+    max_label: "Velký, mohu rozhodovat samostatně"
+
+  - id: 15
+    title: "Jsou vaše návrhy a připomínky brány v úvahu?"
+    type: radio
+    options:
+      - "Ano, vždy"
+      - "Většinou ano"
+      - "Někdy ano, někdy ne"
+      - "Většinou ne"
+      - "Ne, nikdo se mě neptá"
+
+  - id: 16
+    title: "Máte možnost ovlivnit způsob, jakým vykonáváte svou práci?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Vůbec ne"
+    max_label: "Ano, značně"
+
+  # === OHODNOCENÍ A UZNÁNÍ ===
+  - id: 17
+    title: "Jak hodnotíte své finanční ohodnocení vzhledem k náročnosti práce?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Velmi nedostatečné"
+    max_label: "Plně odpovídající"
+
+  - id: 18
+    title: "Cítíte se za svou práci dostatečně oceňováni?"
+    subtitle: "Myslíme tím nejen finanční, ale i slovní ocenění a uznání"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Vůbec ne"
+    max_label: "Ano, velmi"
+
+  - id: 19
+    title: "Jak jsou ve vašem zařízení rozdělovány odměny a benefity?"
+    type: radio
+    options:
+      - "Spravedlivě a transparentně"
+      - "Spíše spravedlivě"
+      - "Nevím, nemám přehled"
+      - "Spíše nespravedlivě"
+      - "Nespravedlivě a netransparentně"
+
+  # === INFORMOVANOST ===
+  - id: 20
+    title: "Jak jste informováni o důležitých záležitostech v zařízení?"
+    subtitle: "Změny, novinky, rozhodnutí vedení"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Vůbec, informace se ke mně nedostanou"
+    max_label: "Výborně, jsem vždy včas informován/a"
+
+  - id: 21
+    title: "Jakým způsobem se nejčastěji dozvídáte pracovní informace?"
+    subtitle: "Vyberte všechny způsoby, které používáte"
+    type: checkbox
+    options:
+      - "Od přímého nadřízeného"
+      - "Na poradách týmu"
+      - "E-mailem nebo písemně"
+      - "Z nástěnky"
+      - "Od kolegů (neoficiálně)"
+      - "Z intranetu nebo aplikace"
+      - "Informace se ke mně často nedostanou"
+
+  # === ŘEŠENÍ PROBLÉMŮ ===
+  - id: 22
+    title: "Když vznikne na pracovišti problém nebo konflikt, jak je obvykle řešen?"
+    type: radio
+    options:
+      - "Rychle a konstruktivně"
+      - "Řeší se, ale trvá to dlouho"
+      - "Řeší se jen některé problémy"
+      - "Většinou se neřeší, zametá se pod koberec"
+      - "Nevím, nesetkal/a jsem se s tím"
+
+  - id: 23
+    title: "Víte, na koho se obrátit, když máte pracovní problém?"
+    type: yes_no
+    yes_label: "Ano"
+    no_label: "Ne"
+
+  - id: 24
+    title: "Cítíte se bezpečně při hlášení problémů nebo stížností?"
+    subtitle: "Bez obav z negativních důsledků"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Ne, mám obavy z následků"
+    max_label: "Ano, mohu mluvit otevřeně"
+
+  # === CELKOVÁ SPOKOJENOST ===
+  - id: 25
+    title: "Jak hodnotíte celkovou atmosféru na pracovišti?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Velmi špatná"
+    max_label: "Výborná"
+
+  - id: 26
+    title: "Doporučili byste toto zařízení jako zaměstnavatele svým známým?"
+    type: nps
+
+  - id: 27
+    title: "Které oblasti fungují ve vašem zařízení dobře?"
+    subtitle: "Vyberte všechny, které platí"
+    type: checkbox
+    options:
+      - "Komunikace s vedením"
+      - "Spolupráce v týmu"
+      - "Pracovní podmínky"
+      - "Finanční ohodnocení"
+      - "Benefity a výhody"
+      - "Pracovní doba a flexibilita"
+      - "Možnosti vzdělávání"
+      - "Vybavení a pomůcky"
+      - "Atmosféra na pracovišti"
+      - "Péče o klienty"
+
+  - id: 28
+    title: "Které oblasti by podle vás potřebovaly zlepšení?"
+    subtitle: "Vyberte všechny, které platí"
+    type: checkbox
+    options:
+      - "Komunikace s vedením"
+      - "Spolupráce v týmu"
+      - "Pracovní podmínky"
+      - "Finanční ohodnocení"
+      - "Benefity a výhody"
+      - "Pracovní doba a flexibilita"
+      - "Možnosti vzdělávání"
+      - "Vybavení a pomůcky"
+      - "Atmosféra na pracovišti"
+      - "Péče o klienty"
+
+  # === PRIORITY ===
+  - id: 29
+    title: "Seřaďte následující oblasti podle toho, jak jsou pro vás v práci důležité"
+    subtitle: "Přetáhněte položky do pořadí (nahoře = nejdůležitější)"
+    type: ranking
+    options:
+      - "Finanční ohodnocení"
+      - "Pracovní kolektiv a vztahy"
+      - "Komunikace s vedením"
+      - "Pracovní zátěž a náročnost"
+      - "Možnost ovlivnit svou práci"
+      - "Uznání a ocenění"
+
+  # === HODNOCENÍ JEDNOTLIVÝCH OBLASTÍ ===
+  - id: 30
+    title: "Jak hodnotíte následující aspekty vašeho zaměstnání?"
+    subtitle: "Vyberte hodnocení pro každou oblast"
+    type: matrix
+    multiple: false
+    rows:
+      - key: komunikace_nadrizeny
+        label: "Komunikace s přímým nadřízeným"
+      - key: komunikace_vedeni
+        label: "Komunikace s vrcholovým vedením"
+      - key: spoluprace_tym
+        label: "Spolupráce v týmu"
+      - key: pracovni_zatez
+        label: "Přiměřenost pracovní zátěže"
+      - key: ohodnoceni
+        label: "Finanční ohodnocení"
+      - key: atmosfera
+        label: "Celková atmosféra"
+    columns:
+      - "Velmi špatné"
+      - "Špatné"
+      - "Průměrné"
+      - "Dobré"
+      - "Výborné"
+
+  # === OTEVŘENÉ OTÁZKY ===
+  - id: 31
+    title: "Co vás na vaší práci nejvíce těší?"
+    subtitle: "Volitelná odpověď"
+    type: text_area
+    placeholder: "Napište, co vás v práci motivuje a co děláte rádi..."
+
+  - id: 32
+    title: "Co byste změnili, kdybyste mohli?"
+    subtitle: "Volitelná odpověď"
+    type: text_area
+    placeholder: "Popište konkrétní návrhy na zlepšení..."
+
+  - id: 33
+    title: "Je něco dalšího, co byste chtěli sdělit?"
+    subtitle: "Volitelná odpověď - prostor pro jakékoli další komentáře"
+    type: text_area
+    placeholder: "Zde můžete napsat cokoli dalšího..."
