@@ -1,0 +1,165 @@
+# yaml-language-server: $schema=questions.schema.json
+# Winter Love Survey - How do you feel about winter?
+
+settings:
+  questionnaire_id: Winter_Love_Survey
+  version: "1"
+  title: "How Do You Feel About Winter?"
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+  randomize_questions: false
+  randomize_options: false
+  auto_advance: false
+  require_all_answers: false
+  show_balloons: true
+  welcome_message: "<strong>Welcome to the Winter Survey!</strong><br><br>We want to know how you feel about the coldest season of the year. Your answers will help us understand different perspectives on winter.<br><br>This survey takes about 3-5 minutes."
+  thank_you_message: "Thank you for sharing your thoughts about winter! Stay warm (or cool, if that's your preference)!"
+
+intro_questions:
+  - id: 1
+    title: "What is your name?"
+    type: text_input
+    placeholder: "Enter your name"
+    subtitle: "Optional - you can skip this"
+
+  - id: 2
+    title: "Where do you live?"
+    type: select
+    subtitle: "Select the climate zone closest to your location"
+    options:
+      - "Northern Europe (cold winters)"
+      - "Central Europe (moderate winters)"
+      - "Southern Europe (mild winters)"
+      - "North America - North (harsh winters)"
+      - "North America - South (mild winters)"
+      - "Asia - Temperate zones"
+      - "Tropical/Subtropical (no real winter)"
+      - "Southern Hemisphere"
+      - "Other"
+
+questions:
+  - id: 3
+    title: "Overall, how much do you love winter?"
+    type: linear_scale
+    min: 1
+    max: 10
+    min_label: "Hate it"
+    max_label: "Absolutely love it"
+    subtitle: "Be honest - there's no wrong answer!"
+
+  - id: 4
+    title: "What's your ideal winter temperature?"
+    type: radio
+    options:
+      - "Below -10°C (14°F) - The colder the better!"
+      - "-10°C to 0°C (14-32°F) - Properly cold"
+      - "0°C to 10°C (32-50°F) - Cool but not freezing"
+      - "Above 10°C (50°F) - I prefer mild winters"
+      - "I wish winter didn't exist"
+
+  - id: 5
+    title: "Which winter activities do you enjoy?"
+    type: checkbox
+    subtitle: "Select all that apply"
+    options:
+      - "Skiing / Snowboarding"
+      - "Ice skating"
+      - "Building snowmen"
+      - "Snowball fights"
+      - "Drinking hot chocolate by the fire"
+      - "Reading books under a blanket"
+      - "Winter hiking"
+      - "Watching snow fall"
+      - "Taking winter photos"
+      - "None - I stay inside as much as possible"
+
+  - id: 6
+    title: "Rate your feelings about snow"
+    type: rating
+    max: 5
+    icon: star
+    subtitle: "5 stars = I absolutely love snow"
+
+  - id: 7
+    title: "Do you experience seasonal mood changes in winter?"
+    type: yes_no
+    yes_label: "Yes, winter affects my mood"
+    no_label: "No, I feel the same all year"
+
+  - id: 8
+    title: "Rank these winter aspects from best to worst"
+    type: ranking
+    subtitle: "Drag to reorder - top = your favorite"
+    options:
+      - "Cozy evenings at home"
+      - "Winter holidays (Christmas, New Year)"
+      - "Snow and winter landscapes"
+      - "Winter sports"
+      - "Shorter days (more darkness)"
+
+  - id: 9
+    title: "Rate these winter experiences"
+    type: matrix
+    subtitle: "How do you feel about each?"
+    multiple: false
+    rows:
+      - key: mornings
+        label: "Cold winter mornings"
+      - key: commute
+        label: "Commuting in winter weather"
+      - key: fashion
+        label: "Winter fashion (coats, scarves, etc.)"
+      - key: holidays
+        label: "Winter holiday atmosphere"
+      - key: heating
+        label: "Heating bills"
+    columns:
+      - "Love it"
+      - "It's okay"
+      - "Dislike it"
+      - "Hate it"
+
+  - id: 10
+    title: "How likely are you to recommend winter as a season to a friend?"
+    type: nps
+    subtitle: "If winter were a product, would you recommend it?"
+
+  - id: 11
+    title: "What percentage of winter days do you actually enjoy?"
+    type: slider
+    min: 0
+    max: 100
+    step: 5
+    default: 50
+
+  - id: 12
+    title: "Your winter personality"
+    type: compound
+    subtitle: "Tell us more about your winter habits"
+    subquestions:
+      - key: a
+        label: "What's your favorite thing about winter?"
+      - key: b
+        label: "What's the worst thing about winter?"
+      - key: c
+        label: "Describe your perfect winter day"
+
+  - id: 13
+    title: "At what time do you prefer the sun to set in winter?"
+    type: time
+    subtitle: "In reality it sets early, but when would you prefer?"
+
+  - id: 14
+    title: "How many cups of hot beverages do you drink on a typical winter day?"
+    type: number
+    min: 0
+    max: 20
+    step: 1
+
+  - id: 15
+    title: "Any final thoughts about winter?"
+    type: text_area
+    placeholder: "Share your winter stories, tips, or complaints..."
+    subtitle: "Optional - feel free to skip"
