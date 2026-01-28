@@ -4,7 +4,7 @@
 
 settings:
   # ── REQUIRED ──────────────────────────────────
-  questionnaire_id: kickoff_2026_survey
+  questionnaire_id: Kickoff_2026_Survey
   version: "1"
   title: "Kickoff 2026 Survey"
 
