@@ -2181,6 +2181,7 @@ def render_aggrid_table(df: pd.DataFrame):
 
 def render_ceo_dashboard():
     """Render CEO dashboard showing all employee answers."""
+    st.markdown('<h1 style="color: red;">HEYEEEEEE</h1>', unsafe_allow_html=True)
     st.markdown("## All Responses Dashboard")
 
     # Add refresh button to force reload
