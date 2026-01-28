@@ -360,8 +360,12 @@ def load_all_answers_from_keboola(progress_callback=None) -> list[dict]:
                     user_email = tag
                     break
 
+            # For anonymous responses, use filename as identifier
             if not user_email:
-                continue
+                if file_name.startswith("anonymous_"):
+                    user_email = file_name.replace(".json", "")
+                else:
+                    continue
 
             try:
                 # Download to temp directory
