@@ -326,25 +326,34 @@ def load_answers_from_keboola(email: str) -> dict | None:
         return None
 
 
-def load_all_answers_from_keboola(progress_callback=None) -> list[dict]:
+def load_all_answers_from_keboola(progress_callback=None, debug_container=None) -> list[dict]:
     """Load all answers from Keboola Storage for CEO dashboard.
 
     Args:
         progress_callback: Optional callback(current, total, email) for progress updates
+        debug_container: Optional Streamlit container for debug output
     """
     files_client = get_keboola_files_client()
     if not files_client:
+        if debug_container:
+            debug_container.error("No Keboola files client - check KBC_API_TOKEN")
         return []
 
     logger.info("Loading all assessment answers for CEO dashboard")
     all_answers = []
     answers_tag = get_answers_tag()
 
+    if debug_container:
+        debug_container.info(f"Looking for files with tag: **{answers_tag}**")
+
     try:
         # List all files with assessment tag
         files_list = files_client.list(tags=[answers_tag], limit=1000)
         total_files = len(files_list)
         logger.info(f"Found {total_files} files with tag {answers_tag}")
+
+        if debug_container:
+            debug_container.info(f"Found **{total_files}** files with tag {answers_tag}")
 
         for idx, file_info in enumerate(files_list):
             file_id = file_info.get("id")
@@ -2174,6 +2183,12 @@ def render_ceo_dashboard():
     """Render CEO dashboard showing all employee answers."""
     st.markdown("## All Responses Dashboard")
 
+    # Add refresh button to force reload
+    if st.button("🔄 Refresh responses", key="refresh_responses"):
+        if "all_answers" in st.session_state:
+            del st.session_state.all_answers
+        st.rerun()
+
     # Load all answers with progress indicator
     if "all_answers" not in st.session_state:
         # Check if local file exists (instant load)
@@ -2198,6 +2213,13 @@ def render_ceo_dashboard():
 
     if not all_answers:
         st.warning("No responses found yet.")
+        # Show debug info
+        with st.expander("Debug info"):
+            st.write(f"**Looking for tag:** `{get_answers_tag()}`")
+            st.write(f"**questionnaire_id:** `{SETTINGS.get('questionnaire_id')}`")
+            st.write(f"**version:** `{SETTINGS.get('version')}`")
+            st.write(f"**KBC_URL:** `{KBC_URL}`")
+            st.write(f"**KBC_TOKEN set:** `{bool(KBC_TOKEN)}`")
         return
 
     # Header with count and actions
