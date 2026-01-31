@@ -17,7 +17,7 @@ settings:
   auto_advance: false
   show_balloons: true
   welcome_message: "<strong>Welcome!</strong><br><br>We are exploring how professionals think about the evolving workplace. This is not a test — there are no right or wrong answers.<br><br>Your honest perspective is what matters most. The questionnaire takes about 10 minutes."
-  thank_you_message: "Thank you for sharing your perspective! We truly appreciate your time and honesty. We will be in touch soon."
+  thank_you_message: "Thank you for sharing your perspective! We truly appreciate your time and honesty.<br><br>Once all responses are collected, we will send you a personalized report showing how you compare to other respondents. Stay tuned!"
 
 intro_questions:
   - id: 1
