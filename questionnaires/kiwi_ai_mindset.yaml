@@ -1,0 +1,277 @@
+# yaml-language-server: $schema=questions.schema.json
+# Kiwi.com Talent - AI Mindset Assessment
+# Purpose: Identify candidates with open, adaptive mindset ready for AI-augmented work
+# NOTE: Questions are intentionally indirect - they assess mindset through scenarios
+
+settings:
+  questionnaire_id: Kiwi_Talent_AIMindset_2026
+  version: "1"
+  title: "Future of Work – Your Perspective"
+  display_mode: one_by_one
+  show_progress_bar: true
+  allow_back_navigation: true
+  show_question_numbers: true
+  randomize_questions: false
+  randomize_options: true
+  require_all_answers: false
+  auto_advance: false
+  show_balloons: true
+  welcome_message: "<strong>Welcome!</strong><br><br>We are exploring how professionals think about the evolving workplace. This is not a test — there are no right or wrong answers.<br><br>Your honest perspective is what matters most. The questionnaire takes about 10 minutes."
+  thank_you_message: "Thank you for sharing your perspective! We truly appreciate your time and honesty. We will be in touch soon."
+
+intro_questions:
+  - id: 1
+    title: "What is your name?"
+    type: text_input
+    placeholder: "Your full name"
+
+  - id: 2
+    title: "What is your email address?"
+    type: text_input
+    placeholder: "your@email.com"
+
+  - id: 3
+    title: "Which area best describes your most recent role?"
+    type: select
+    options:
+      - "Software Engineering (Frontend)"
+      - "Software Engineering (Backend)"
+      - "Software Engineering (Mobile)"
+      - "Software Engineering (Full-stack)"
+      - "QA / Test Automation"
+      - "Data & Analytics"
+      - "Product Management"
+      - "Project Management"
+      - "HR / People Operations"
+      - "L&D / Training"
+      - "Customer Support / Claims"
+      - "Operations / Ticketing"
+      - "Account Management / Sales"
+      - "Design / Creative"
+      - "Content / Marketing"
+      - "Other"
+
+  - id: 4
+    title: "How many years of professional experience do you have?"
+    type: number
+    min: 0
+    max: 40
+    step: 1
+
+# ─────────────────────────────────────────────────────────
+# MAIN QUESTIONS - Designed to reveal AI mindset indirectly
+# ─────────────────────────────────────────────────────────
+
+questions:
+
+  # ── SECTION: Adaptability & Learning ──────────────────
+
+  - id: 5
+    title: "Imagine you start a new role tomorrow in a field you have never worked in before. What is your first instinct?"
+    subtitle: "Pick the option closest to how you would actually react"
+    type: radio
+    options:
+      - "Exciting — I would dive into learning the basics immediately"
+      - "A bit nervous, but I would figure it out step by step"
+      - "I would need structured training before I could be productive"
+      - "I would prefer to stay in a domain I already know well"
+
+  - id: 6
+    title: "When you encounter a task you have never done before, rank these approaches by how likely you are to use them"
+    subtitle: "Drag to reorder (top = most likely)"
+    type: ranking
+    options:
+      - "Search online, watch a tutorial, or ask an AI assistant"
+      - "Ask a colleague who has done it before"
+      - "Read the official documentation thoroughly"
+      - "Try to figure it out myself through trial and error"
+
+  - id: 7
+    title: "In the last 12 months, which of these have you done?"
+    subtitle: "Select all that apply"
+    type: checkbox
+    options:
+      - "Learned a new tool or technology outside of work requirements"
+      - "Took an online course or certification"
+      - "Built a personal or side project"
+      - "Explored a career path different from my current role"
+      - "Taught or mentored someone in a new skill"
+      - "Experimented with AI tools (ChatGPT, Copilot, Midjourney, etc.)"
+      - "Read books or articles about industry trends"
+      - "None of the above"
+
+  # ── SECTION: Work Style & Automation Comfort ──────────
+
+  - id: 8
+    title: "You have a repetitive task that takes 2 hours every week. What would you do?"
+    type: radio
+    options:
+      - "Automate it immediately, even if the setup takes a full day"
+      - "Look for a tool or script that could help, but keep doing it manually until I find one"
+      - "Ask someone technical to automate it for me"
+      - "Just keep doing it — 2 hours is not that much"
+
+  - id: 9
+    title: "How comfortable are you delegating important decisions to an automated system?"
+    subtitle: "For example: an algorithm prioritizing your task list, or automated code deployment"
+    type: slider
+    min: 0
+    max: 100
+    step: 1
+    default: 50
+
+  - id: 10
+    title: "A new AI tool can do 80% of a specific part of your job. How do you feel about that?"
+    type: radio
+    options:
+      - "Great — I can focus on the remaining 20% that requires human judgment"
+      - "Interesting — I would use it but verify everything carefully"
+      - "Concerned — my value comes from doing that work myself"
+      - "Skeptical — I doubt it actually works well enough"
+
+  # ── SECTION: Scenario-Based (Role-Adaptive) ───────────
+
+  - id: 11
+    title: "Scenario: You are reviewing a colleague's work (code, document, analysis). An AI tool has already reviewed it and flagged 3 potential issues with detailed explanations. What do you do?"
+    type: ranking
+    subtitle: "Rank from most likely to least likely"
+    options:
+      - "Read the AI report, verify the flagged issues, and focus my review on things AI might miss (context, strategy, edge cases)"
+      - "Use the AI report as a starting point but still do my own full review"
+      - "Ignore the AI report and do my own independent review"
+      - "Trust the AI report and approve if the 3 issues are fixed"
+
+  - id: 12
+    title: "Scenario: Your company introduces an AI assistant that can draft emails, create reports, and summarize meetings for you. After a month of using it, you notice it saves you about 10 hours per week. What do you do with that time?"
+    type: radio
+    options:
+      - "Take on new projects or responsibilities in areas I have been curious about"
+      - "Deepen my expertise — learn advanced skills in my current domain"
+      - "Help colleagues adopt the same tool and improve team productivity"
+      - "Enjoy a better work-life balance"
+
+  - id: 13
+    title: "How would you describe your ideal work setup in 2026?"
+    subtitle: "Select up to 3 options that resonate most"
+    type: checkbox
+    options:
+      - "Working alongside AI tools that handle routine tasks"
+      - "Constant learning — my role evolves every few months"
+      - "Clear boundaries — I know exactly what my job is"
+      - "Cross-functional work — collaborating across different teams and disciplines"
+      - "Deep specialization — becoming the best at one specific thing"
+      - "Leading or coordinating AI-augmented workflows"
+      - "Stable, predictable work with minimal change"
+      - "Building or configuring AI agents and automations"
+
+  # ── SECTION: Problem Solving & Critical Thinking ──────
+
+  - id: 14
+    title: "You need to make a decision but only have incomplete data. What is your approach?"
+    type: radio
+    options:
+      - "Make the best decision with available data, then iterate as more information comes in"
+      - "Quickly gather more data using any tools available (including AI analysis) before deciding"
+      - "Consult with experts and stakeholders to fill the gaps"
+      - "Wait until I have enough data to make a confident decision"
+
+  - id: 15
+    title: "Rate how much you agree with these statements"
+    subtitle: "Be honest — there are no wrong answers"
+    type: matrix
+    multiple: false
+    rows:
+      - key: change
+        label: "I enjoy when my job changes and I get to do new things"
+      - key: tools
+        label: "I am usually among the first to try new tools and technologies"
+      - key: replace
+        label: "If a tool can do part of my job better than me, that is a good thing"
+      - key: title
+        label: "My job title matters less than the impact I create"
+      - key: learn
+        label: "I would rather learn something completely new than perfect what I already know"
+      - key: trust_ai
+        label: "I trust AI-generated suggestions as a useful starting point"
+    columns:
+      - "Strongly disagree"
+      - "Disagree"
+      - "Neutral"
+      - "Agree"
+      - "Strongly agree"
+
+  # ── SECTION: Practical AI Exposure ────────────────────
+
+  - id: 16
+    title: "Which of these tools have you actually used (not just heard about)?"
+    subtitle: "Select all that apply"
+    type: checkbox
+    options:
+      - "ChatGPT / Claude / Gemini (conversational AI)"
+      - "Claude Code / Aider / AI coding agents (autonomous coding)"
+      - "GitHub Copilot / Cursor / AI code assistants"
+      - "Midjourney / DALL-E / AI image generation"
+      - "Notion AI / AI writing assistants"
+      - "AI-powered data analysis tools"
+      - "Custom AI automations (Zapier AI, Make, n8n with AI)"
+      - "AI agents (autonomous tools that complete multi-step tasks)"
+      - "I have not used any AI tools yet"
+
+  - id: 17
+    title: "If you have used AI tools, how would you describe your usage?"
+    type: radio
+    options:
+      - "Daily — it is part of my workflow"
+      - "Weekly — I use it for specific tasks"
+      - "Occasionally — when I remember or need help"
+      - "I tried it a few times but did not stick with it"
+      - "I have not really used AI tools"
+
+  - id: 18
+    title: "Have you ever modified, customized, or built something with AI beyond just chatting?"
+    subtitle: "For example: custom GPT, prompt template library, AI-powered automation, fine-tuned model, AI agent workflow"
+    type: yes_no
+    yes_label: "Yes"
+    no_label: "No"
+
+  # ── SECTION: Role Flexibility ─────────────────────────
+
+  - id: 19
+    title: "If your next role looked completely different from your last one — different title, different daily tasks, but using your core strengths — how would you feel?"
+    type: linear_scale
+    min: 1
+    max: 5
+    min_label: "Very uncomfortable — I want continuity"
+    max_label: "Very excited — I love reinventing myself"
+
+  - id: 20
+    title: "Which of these core strengths do you identify with most?"
+    subtitle: "Pick up to 3"
+    type: checkbox
+    options:
+      - "Analytical thinking — I break complex problems into parts"
+      - "Communication — I explain things clearly to any audience"
+      - "Execution — I get things done reliably and on time"
+      - "Creativity — I come up with original solutions"
+      - "Empathy — I understand what people need"
+      - "Systems thinking — I see how everything connects"
+      - "Curiosity — I always want to understand why and how"
+      - "Leadership — I naturally guide and coordinate others"
+
+  - id: 21
+    title: "Imagine a world where AI handles most routine professional tasks. What role do you see yourself playing?"
+    type: text_area
+    placeholder: "Describe in a few sentences what you would want to do..."
+    subtitle: "There is no right answer — we are curious about your vision"
+
+  # ── SECTION: Final Reflection ─────────────────────────
+
+  - id: 22
+    title: "What is the most interesting thing you have learned or built in the last 6 months?"
+    type: text_area
+    placeholder: "It can be work-related or personal — we are curious about what excites you..."
+
+  - id: 23
+    title: "Is there anything else you would like us to know about you?"
+    type: text_area
+    placeholder: "Anything goes — your ambitions, side projects, what you are looking for..."
