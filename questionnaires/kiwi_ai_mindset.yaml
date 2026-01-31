@@ -238,11 +238,11 @@ questions:
 
   - id: 19
     title: "If your next role looked completely different from your last one — different title, different daily tasks, but using your core strengths — how would you feel?"
-    type: linear_scale
-    min: 1
-    max: 5
-    min_label: "Very uncomfortable — I want continuity"
-    max_label: "Very excited — I love reinventing myself"
+    type: slider
+    min: 0
+    max: 100
+    step: 1
+    default: 50
 
   - id: 20
     title: "Which of these core strengths do you identify with most?"
