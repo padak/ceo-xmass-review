@@ -813,6 +813,12 @@ def init_session_state(authenticated_user: str | None):
             st.session_state.user_chose_action = True  # No choice needed
             logger.info(f"No existing answers found for {authenticated_user}")
         st.session_state.answers_loaded = True
+    elif not st.session_state.answers_loaded and not authenticated_user:
+        # No OIDC proxy — skip existing answers check entirely
+        st.session_state.has_existing_answers = False
+        st.session_state.user_chose_action = True
+        st.session_state.answers_loaded = True
+        logger.info("No authenticated user — skipping existing answers check")
 
 
 def get_answer_key(question_id, sub_key=None):
